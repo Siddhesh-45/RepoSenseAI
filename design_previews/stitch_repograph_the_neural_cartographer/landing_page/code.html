@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RepoGraph - Map Your Codebase</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed-dim": "#00ef41",
+                    "inverse-on-surface": "#565554",
+                    "primary": "#acffa3",
+                    "surface-container": "#1a1919",
+                    "primary-fixed": "#0dff47",
+                    "on-secondary": "#005a3c",
+                    "on-secondary-fixed-variant": "#006544",
+                    "secondary-container": "#006c49",
+                    "primary-dim": "#00ef41",
+                    "surface-tint": "#acffa3",
+                    "tertiary-container": "#0feafd",
+                    "surface": "#0e0e0e",
+                    "on-primary": "#006516",
+                    "tertiary-fixed": "#0feafd",
+                    "outline-variant": "#494847",
+                    "on-error": "#450900",
+                    "surface-container-highest": "#262626",
+                    "surface-variant": "#262626",
+                    "tertiary": "#8cf2ff",
+                    "on-primary-container": "#005c13",
+                    "on-tertiary-container": "#005159",
+                    "outline": "#777575",
+                    "on-secondary-container": "#e1ffec",
+                    "tertiary-dim": "#00dbed",
+                    "surface-dim": "#0e0e0e",
+                    "error": "#ff7351",
+                    "background": "#0e0e0e",
+                    "secondary": "#69f6b8",
+                    "tertiary-fixed-dim": "#00dbed",
+                    "on-error-container": "#ffd2c8",
+                    "on-tertiary": "#005b63",
+                    "primary-container": "#0dff47",
+                    "on-secondary-fixed": "#00452d",
+                    "on-background": "#ffffff",
+                    "on-primary-fixed": "#00460c",
+                    "secondary-fixed": "#69f6b8",
+                    "on-tertiary-fixed": "#003d42",
+                    "on-tertiary-fixed-variant": "#005c64",
+                    "secondary-dim": "#58e7ab",
+                    "on-surface": "#ffffff",
+                    "error-container": "#b92902",
+                    "inverse-surface": "#fcf8f8",
+                    "inverse-primary": "#006f18",
+                    "surface-container-low": "#131313",
+                    "on-surface-variant": "#adaaaa",
+                    "secondary-fixed-dim": "#58e7ab",
+                    "surface-container-lowest": "#000000",
+                    "error-dim": "#d53d18",
+                    "surface-container-high": "#201f1f",
+                    "on-primary-fixed-variant": "#006716",
+                    "surface-bright": "#2c2c2c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {},
+            "fontFamily": {
+                    "headline": [
+                            "Inter"
+                    ],
+                    "body": [
+                            "Inter"
+                    ],
+                    "label": [
+                            "JetBrains Mono"
+                    ]
+            }
+        },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #050505;
+            background-image: radial-gradient(circle at center, rgba(0, 255, 70, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
+</head>
+<body class="font-body text-on-surface antialiased min-h-screen flex flex-col items-center justify-center relative overflow-x-hidden">
+<!-- TopNavBar (Suppressed due to Transactional/Landing intent, but included structurally if needed later. Intentionally hidden here to prioritize canvas) -->
+<div class="hidden">
+<nav class="flex justify-between items-center px-6 py-3 w-full fixed top-0 z-50 bg-black/40 backdrop-blur-xl border-b border-[#00ff46]/20 shadow-[0_20px_40px_rgba(0,255,70,0.08)]">
+<div class="font-['JetBrains_Mono'] font-bold text-xl tracking-tighter text-[#00ff46]">RepoGraph</div>
+<div class="flex gap-6 font-['Inter'] font-medium text-sm tracking-tight">
+<a class="text-[#00ff46] border-b-2 border-[#00ff46] pb-1" href="#">Explorer</a>
+<a class="text-[#adaaaa] hover:text-white transition-colors" href="#">Graphs</a>
+<a class="text-[#adaaaa] hover:text-white transition-colors" href="#">History</a>
+</div>
+</nav>
+</div>
+<!-- Main Canvas -->
+<main class="w-full max-w-5xl px-6 py-24 flex flex-col items-center text-center relative z-10">
+<!-- Hero Section -->
+<h1 class="font-headline font-bold text-5xl md:text-7xl tracking-tighter leading-tight mb-4">
+<span class="text-on-surface">Map Your Codebase.</span><br/>
+<span class="text-primary-fixed-dim drop-shadow-[0_0_15px_rgba(0,255,70,0.3)]">Understand it instantly.</span>
+</h1>
+<p class="font-headline text-lg md:text-xl text-on-surface-variant max-w-2xl mb-12">
+            AI-powered dependency visualization for any GitHub repository.
+        </p>
+<!-- Input Area -->
+<div class="w-full max-w-3xl relative mb-16 flex flex-col sm:flex-row gap-4 items-center justify-center">
+<div class="w-full relative group">
+<div class="absolute inset-0 bg-primary-fixed-dim/5 backdrop-blur-xl rounded-DEFAULT border border-primary-fixed-dim/20 pointer-events-none group-focus-within:border-primary-dim group-focus-within:shadow-[0_0_20px_rgba(0,255,70,0.15)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"></div>
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">link</span>
+<input class="w-full bg-transparent border-none text-on-surface placeholder:text-on-surface-variant/50 font-label text-sm py-4 pl-12 pr-4 focus:ring-0 z-10 relative" placeholder="https://github.com/user/repo" type="text"/>
+</div>
+<button class="whitespace-nowrap bg-primary text-on-primary font-headline font-semibold px-8 py-4 rounded-DEFAULT shadow-[0_0_20px_rgba(0,255,70,0.2)] hover:shadow-[0_0_30px_rgba(0,255,70,0.4)] hover:bg-primary-container transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center gap-2">
+                Analyze <span class="material-symbols-outlined text-sm font-bold">arrow_forward</span>
+</button>
+</div>
+<!-- Feature Pills -->
+<div class="flex flex-wrap justify-center gap-4 mb-24">
+<div class="bg-surface-variant px-4 py-2 rounded-DEFAULT flex items-center gap-2 border border-primary-fixed-dim/10">
+<span class="text-secondary font-label text-xs">⬡ AST Parsing</span>
+</div>
+<div class="bg-surface-variant px-4 py-2 rounded-DEFAULT flex items-center gap-2 border border-primary-fixed-dim/10">
+<span class="text-secondary font-label text-xs">⬡ AI Summaries</span>
+</div>
+<div class="bg-surface-variant px-4 py-2 rounded-DEFAULT flex items-center gap-2 border border-primary-fixed-dim/10">
+<span class="text-secondary font-label text-xs">⬡ Blast Radius Scoring</span>
+</div>
+</div>
+<!-- Preview Graph -->
+<div class="relative w-full max-w-4xl aspect-video rounded-DEFAULT overflow-hidden mb-32 group cursor-pointer border border-primary-fixed-dim/10">
+<div class="absolute inset-0 bg-black/60 z-10 group-hover:bg-black/40 transition-colors duration-500"></div>
+<div class="absolute inset-0 flex items-center justify-center z-20">
+<div class="bg-surface-container-high/80 backdrop-blur-md border-t border-primary-container px-6 py-3 rounded-DEFAULT font-headline text-sm font-medium text-primary shadow-[0_20px_40px_rgba(0,255,70,0.1)] flex items-center gap-2">
+                    See your repo like this <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</div>
+</div>
+<img alt="RepoGraph Visualization Preview" class="w-full h-full object-cover blur-sm scale-105 group-hover:blur-[2px] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]" data-alt="Abstract network graph visualization with glowing green nodes and intersecting lines against a deep black background, tech aesthetic, cinematic lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCthUCGhfevsrCBnWmcjv690aHVstTDkBRqV8d7qnCRQ_0p_uK-harIvofpah6ijhDVo1tfjobxmCzh8-2zRuu52liQYRBYJ0lFg3e_hmLmvuutuF4deBsh8_a-o7jU9QrvRWER_fpTyQxCwvEhrrwiGH4yDZL-LCXC5TpgjAHkirMMT2kmEJMsmpSMv4--p0Bydltkjh2cNH2-tVKQTTLpjuLI4PBNbZ5RZjyG4KSNdFB3IWyT0gKwP7gVyVSms7mni7CiDVZgHK0"/>
+</div>
+<!-- Scroll Triggered Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full text-left mb-24">
+<div class="bg-surface-container-low p-6 rounded-DEFAULT border-t border-primary-container/40 relative overflow-hidden group hover:bg-surface-container transition-colors duration-300">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-2xl rounded-full translate-x-1/2 -translate-y-1/2"></div>
+<span class="material-symbols-outlined text-primary-dim mb-4" data-weight="fill" style="font-variation-settings: 'FILL' 1;">hub</span>
+<h3 class="font-headline font-semibold text-lg text-on-surface mb-2">Instant Graph</h3>
+<p class="font-headline text-sm text-on-surface-variant">Visualize thousands of files in milliseconds. Uncover hidden architectural patterns instantly.</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-DEFAULT border-t border-primary-container/40 relative overflow-hidden group hover:bg-surface-container transition-colors duration-300">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-2xl rounded-full translate-x-1/2 -translate-y-1/2"></div>
+<span class="material-symbols-outlined text-primary-dim mb-4" data-weight="fill" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+<h3 class="font-headline font-semibold text-lg text-on-surface mb-2">Claude AI Summaries</h3>
+<p class="font-headline text-sm text-on-surface-variant">Automated module descriptions and intent analysis powered by advanced language models.</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-DEFAULT border-t border-primary-container/40 relative overflow-hidden group hover:bg-surface-container transition-colors duration-300">
+<div class="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-2xl rounded-full translate-x-1/2 -translate-y-1/2"></div>
+<span class="material-symbols-outlined text-primary-dim mb-4" data-weight="fill" style="font-variation-settings: 'FILL' 1;">route</span>
+<h3 class="font-headline font-semibold text-lg text-on-surface mb-2">Onboarding Path</h3>
+<p class="font-headline text-sm text-on-surface-variant">Generate step-by-step reading guides for new engineers based on commit history and dependency critical paths.</p>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-8 border-t border-surface-container mt-auto">
+<div class="flex justify-center gap-8 font-label text-xs text-on-surface-variant/70">
+<a class="hover:text-primary transition-colors" href="#">GitHub</a>
+<a class="hover:text-primary transition-colors" href="#">Docs</a>
+<a class="hover:text-primary transition-colors flex items-center gap-2" href="#">
+<span class="w-2 h-2 rounded-full bg-primary-dim shadow-[0_0_5px_rgba(0,255,70,0.5)]"></span> Status
+            </a>
+</div>
+</footer>
+</body></html>

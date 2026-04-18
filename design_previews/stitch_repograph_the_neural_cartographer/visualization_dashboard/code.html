@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RepoGraph - Visualization Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed-dim": "#00ef41",
+                      "inverse-on-surface": "#565554",
+                      "primary": "#acffa3",
+                      "surface-container": "#1a1919",
+                      "primary-fixed": "#0dff47",
+                      "on-secondary": "#005a3c",
+                      "on-secondary-fixed-variant": "#006544",
+                      "secondary-container": "#006c49",
+                      "primary-dim": "#00ef41",
+                      "surface-tint": "#acffa3",
+                      "tertiary-container": "#0feafd",
+                      "surface": "#0e0e0e",
+                      "on-primary": "#006516",
+                      "tertiary-fixed": "#0feafd",
+                      "outline-variant": "#494847",
+                      "on-error": "#450900",
+                      "surface-container-highest": "#262626",
+                      "surface-variant": "#262626",
+                      "tertiary": "#8cf2ff",
+                      "on-primary-container": "#005c13",
+                      "on-tertiary-container": "#005159",
+                      "outline": "#777575",
+                      "on-secondary-container": "#e1ffec",
+                      "tertiary-dim": "#00dbed",
+                      "surface-dim": "#0e0e0e",
+                      "error": "#ff7351",
+                      "background": "#0e0e0e",
+                      "secondary": "#69f6b8",
+                      "tertiary-fixed-dim": "#00dbed",
+                      "on-error-container": "#ffd2c8",
+                      "on-tertiary": "#005b63",
+                      "primary-container": "#0dff47",
+                      "on-secondary-fixed": "#00452d",
+                      "on-background": "#ffffff",
+                      "on-primary-fixed": "#00460c",
+                      "secondary-fixed": "#69f6b8",
+                      "on-tertiary-fixed": "#003d42",
+                      "on-tertiary-fixed-variant": "#005c64",
+                      "secondary-dim": "#58e7ab",
+                      "on-surface": "#ffffff",
+                      "error-container": "#b92902",
+                      "inverse-surface": "#fcf8f8",
+                      "inverse-primary": "#006f18",
+                      "surface-container-low": "#131313",
+                      "on-surface-variant": "#adaaaa",
+                      "secondary-fixed-dim": "#58e7ab",
+                      "surface-container-lowest": "#000000",
+                      "error-dim": "#d53d18",
+                      "surface-container-high": "#201f1f",
+                      "on-primary-fixed-variant": "#006716",
+                      "surface-bright": "#2c2c2c"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {},
+              "fontFamily": {
+                      "headline": [
+                              "Inter"
+                      ],
+                      "body": [
+                              "Inter"
+                      ],
+                      "label": [
+                              "Inter"
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        /* Ambient Effects & Scaffolding */
+        body {
+            background-color: #050505; /* True Black Void */
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 255, 70, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(15, 234, 253, 0.02) 0%, transparent 50%);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevent body scroll, layout handles it */
+        }
+
+        /* The Particle Canvas - Purely CSS visual */
+        .particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            background-image: radial-gradient(rgba(172, 255, 163, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        /* Glassmorphism Specs */
+        .glass-panel {
+            background-color: rgba(26, 25, 25, 0.6); /* surface-container with opacity */
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(13, 255, 71, 0.4); /* primary-container */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(173, 170, 170, 0.2); /* on-surface-variant */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(172, 255, 163, 0.5); /* primary */
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen text-on-surface bg-surface-container-lowest">
+<!-- Particle Field Background -->
+<div class="particle-canvas"></div>
+<!-- MAIN LAYOUT WRAPPER -->
+<div class="flex flex-col h-screen relative z-10">
+<!-- TopNavBar (Generated from JSON) -->
+<nav class="flex justify-between items-center px-6 py-3 w-full fixed top-0 z-50 bg-black/40 backdrop-blur-xl font-['Inter'] font-medium text-sm tracking-tight docked full-width border-b border-[#00ff46]/20 shadow-[0_20px_40px_rgba(0,255,70,0.08)] tonal shifting from surface-dim to surface-container-low transition-all cubic-bezier(0.16, 1, 0.3, 1) duration-300">
+<!-- Brand -->
+<div class="flex items-center gap-4">
+<span class="font-['JetBrains_Mono'] font-bold text-xl tracking-tighter text-[#00ff46]">RepoGraph</span>
+<!-- Breadcrumbs (Added based on prompt context) -->
+<div class="hidden md:flex items-center gap-2 text-on-surface-variant font-['JetBrains_Mono'] text-xs ml-4">
+<span class="material-symbols-outlined text-[16px]">folder</span>
+<span>src</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span>components</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-primary">Dashboard.tsx</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="hidden md:flex items-center gap-6">
+<a class="text-[#adaaaa] hover:text-white transition-colors hover:bg-[#00ff46]/10 hover:shadow-[0_0_15px_rgba(0,255,70,0.2)] px-2 py-1 rounded-DEFAULT" href="#">Explorer</a>
+<!-- Active State applied to 'Graphs' based on page intent -->
+<a class="text-[#00ff46] border-b-2 border-[#00ff46] pb-1 hover:bg-[#00ff46]/10 hover:shadow-[0_0_15px_rgba(0,255,70,0.2)] px-2 py-1" href="#">Graphs</a>
+<a class="text-[#adaaaa] hover:text-white transition-colors hover:bg-[#00ff46]/10 hover:shadow-[0_0_15px_rgba(0,255,70,0.2)] px-2 py-1 rounded-DEFAULT" href="#">History</a>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-4">
+<div class="hidden md:flex items-center gap-3">
+<button class="text-[#adaaaa] hover:text-white transition-colors p-1 rounded-DEFAULT hover:bg-[#00ff46]/10">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<button class="text-[#adaaaa] hover:text-white transition-colors p-1 rounded-DEFAULT hover:bg-[#00ff46]/10">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-DEFAULT text-xs font-semibold hover:bg-primary-container transition-colors shadow-[0_0_15px_rgba(0,255,70,0.2)]">
+                    New Repo
+                </button>
+<div class="w-8 h-8 rounded-DEFAULT bg-surface-container-highest overflow-hidden border border-outline-variant">
+<!-- Placeholder for Avatar -->
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDYaP6o6lV8pVmFW6sdVuAyKkxlTRy56TaUfvkJhy4Qdh-zvw5EIBMCNDruIrm6tAwBeJS99g_DxP6h-X1zkx52-z9SJHyr_tNyvDLPA2vG5wScqaXc_G76Spm5eezlKtCNMDU58nXS62EGUSnepHSsG0NCz_ugkfq6yfSzpmEtZAIJun5bJ04-r8q-F_uo5PbRaBXBXMY26yG1ioqX8Gw9-CcILS2ICFiY9--8nfzhwTcOL2HWm6D_eJjgEdrrSj1BqcCVX1T9DLz"/>
+</div>
+</div>
+</nav>
+<!-- CONTENT AREA (Three-column layout) -->
+<div class="flex flex-1 pt-16 h-full overflow-hidden">
+<!-- 1. Left Sidebar (Onboarding Path) -->
+<aside class="w-[260px] h-full flex-shrink-0 glass-panel border-r border-outline-variant/30 flex flex-col z-20">
+<div class="p-4 border-b border-outline-variant/30 flex items-center justify-between">
+<h2 class="text-xs font-['JetBrains_Mono'] uppercase tracking-widest text-on-surface-variant">Execution Path</h2>
+<span class="material-symbols-outlined text-xs text-on-surface-variant">route</span>
+</div>
+<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+<!-- Entry File Pill (Active) -->
+<div class="flex items-center gap-3 p-2 rounded-DEFAULT bg-primary/10 border border-primary/30 shadow-[0_0_15px_rgba(0,255,70,0.15)] cursor-pointer group">
+<div class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(172,255,163,0.8)]"></div>
+<div class="flex flex-col">
+<span class="font-['JetBrains_Mono'] text-xs text-primary">index.tsx</span>
+<span class="text-[10px] text-on-surface-variant">Entry Point</span>
+</div>
+</div>
+<!-- Core File Pill -->
+<div class="flex items-center gap-3 p-2 rounded-DEFAULT bg-surface-container hover:bg-surface-container-highest border border-transparent transition-colors cursor-pointer group">
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed shadow-[0_0_8px_rgba(15,234,253,0.3)]"></div>
+<div class="flex flex-col">
+<span class="font-['JetBrains_Mono'] text-xs text-on-surface">App.tsx</span>
+<span class="text-[10px] text-on-surface-variant">Core Logic</span>
+</div>
+</div>
+<!-- High Impact File Pill -->
+<div class="flex items-center gap-3 p-2 rounded-DEFAULT bg-surface-container hover:bg-surface-container-highest border border-transparent transition-colors cursor-pointer group">
+<div class="w-2 h-2 rounded-full bg-error shadow-[0_0_8px_rgba(255,115,81,0.5)]"></div>
+<div class="flex flex-col">
+<span class="font-['JetBrains_Mono'] text-xs text-on-surface">apiConfig.ts</span>
+<span class="text-[10px] text-error">High Impact (18 deps)</span>
+</div>
+</div>
+<!-- Utility File Pill -->
+<div class="flex items-center gap-3 p-2 rounded-DEFAULT bg-surface-container hover:bg-surface-container-highest border border-transparent transition-colors cursor-pointer group">
+<div class="w-2 h-2 rounded-full bg-[#eab308] shadow-[0_0_8px_rgba(234,179,8,0.3)]"></div>
+<div class="flex flex-col">
+<span class="font-['JetBrains_Mono'] text-xs text-on-surface">formatters.ts</span>
+<span class="text-[10px] text-on-surface-variant">Utility</span>
+</div>
+</div>
+<!-- Core File Pill -->
+<div class="flex items-center gap-3 p-2 rounded-DEFAULT bg-surface-container hover:bg-surface-container-highest border border-transparent transition-colors cursor-pointer group">
+<div class="w-2 h-2 rounded-full bg-tertiary-fixed shadow-[0_0_8px_rgba(15,234,253,0.3)]"></div>
+<div class="flex flex-col">
+<span class="font-['JetBrains_Mono'] text-xs text-on-surface">Dashboard.tsx</span>
+<span class="text-[10px] text-on-surface-variant">Core Logic</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- 2. Center Canvas (React Flow Simulation) -->
+<main class="flex-1 relative overflow-hidden bg-surface-container-lowest z-10">
+<!-- Simulated Graph Background Elements (Lines/Grid) -->
+<div class="absolute inset-0 opacity-10" style="background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 100px 100px;"></div>
+<!-- Simulated Connection Lines (SVG) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 1;">
+<!-- Line from index to App -->
+<path d="M 250 200 C 350 200, 350 150, 450 150" fill="none" stroke="rgba(172, 255, 163, 0.4)" stroke-dasharray="5,5" stroke-width="2"></path>
+<!-- Line from App to apiConfig -->
+<path d="M 650 150 C 750 150, 750 300, 850 300" fill="none" stroke="rgba(255, 115, 81, 0.4)" stroke-width="2"></path>
+<!-- Line from App to formatters -->
+<path d="M 650 150 C 700 150, 700 50, 750 50" fill="none" stroke="rgba(15, 234, 253, 0.4)" stroke-width="1"></path>
+</svg>
+<!-- Nodes -->
+<div class="absolute inset-0" style="z-index: 2;">
+<!-- Entry Node -->
+<div class="absolute top-[160px] left-[50px] w-[200px] bg-surface-container-high border border-primary/50 rounded-DEFAULT p-3 shadow-[0_10px_30px_rgba(0,255,70,0.1)] backdrop-blur-md cursor-grab">
+<div class="flex justify-between items-start mb-2">
+<span class="font-['JetBrains_Mono'] text-sm text-primary">index.tsx</span>
+<span class="material-symbols-outlined text-[14px] text-primary">login</span>
+</div>
+<div class="text-[10px] text-on-surface-variant font-['JetBrains_Mono']">Exports: 1 | Size: 2kb</div>
+</div>
+<!-- Core Node -->
+<div class="absolute top-[110px] left-[450px] w-[200px] bg-surface-container border border-tertiary-fixed/30 rounded-DEFAULT p-3 shadow-lg backdrop-blur-md cursor-grab">
+<div class="flex justify-between items-start mb-2">
+<span class="font-['JetBrains_Mono'] text-sm text-on-surface">App.tsx</span>
+<span class="material-symbols-outlined text-[14px] text-tertiary-fixed">hub</span>
+</div>
+<div class="text-[10px] text-on-surface-variant font-['JetBrains_Mono']">Imports: 12 | Size: 15kb</div>
+</div>
+<!-- High Impact Node -->
+<div class="absolute top-[260px] left-[850px] w-[220px] bg-surface-container border border-error/50 rounded-DEFAULT p-3 shadow-[0_10px_30px_rgba(255,115,81,0.1)] backdrop-blur-md cursor-grab">
+<div class="flex justify-between items-start mb-2">
+<span class="font-['JetBrains_Mono'] text-sm text-on-surface">apiConfig.ts</span>
+<span class="material-symbols-outlined text-[14px] text-error">warning</span>
+</div>
+<div class="text-[10px] text-error font-['JetBrains_Mono'] mb-1">Blast Radius: High</div>
+<div class="text-[10px] text-on-surface-variant font-['JetBrains_Mono']">Dependents: 18</div>
+</div>
+<!-- Utility Node -->
+<div class="absolute top-[30px] left-[750px] w-[180px] bg-surface-container border border-[#eab308]/30 rounded-DEFAULT p-3 shadow-lg backdrop-blur-md cursor-grab">
+<div class="flex justify-between items-start mb-2">
+<span class="font-['JetBrains_Mono'] text-sm text-on-surface">formatters.ts</span>
+<span class="material-symbols-outlined text-[14px] text-[#eab308]">build</span>
+</div>
+<div class="text-[10px] text-on-surface-variant font-['JetBrains_Mono']">Pure Functions</div>
+</div>
+</div>
+<!-- Canvas Controls (Bottom Left) -->
+<div class="absolute bottom-6 left-6 flex gap-2 z-30">
+<button class="w-8 h-8 flex items-center justify-center bg-surface-container-high border border-outline-variant/30 rounded-DEFAULT hover:bg-surface-variant text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center bg-surface-container-high border border-outline-variant/30 rounded-DEFAULT hover:bg-surface-variant text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center bg-surface-container-high border border-outline-variant/30 rounded-DEFAULT hover:bg-surface-variant text-on-surface transition-colors ml-2">
+<span class="material-symbols-outlined text-[18px]">fit_screen</span>
+</button>
+</div>
+<!-- MiniMap (Bottom Right) -->
+<div class="absolute bottom-6 right-6 w-[150px] h-[100px] bg-surface-container-highest/80 border border-outline-variant/30 rounded-DEFAULT backdrop-blur-md z-30 overflow-hidden">
+<div class="absolute inset-0 opacity-20" style="background-image: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 10px 10px;"></div>
+<!-- Minimap indicators -->
+<div class="absolute top-[30%] left-[10%] w-[10px] h-[6px] bg-primary rounded-sm"></div>
+<div class="absolute top-[20%] left-[40%] w-[10px] h-[6px] bg-tertiary-fixed rounded-sm"></div>
+<div class="absolute top-[50%] left-[70%] w-[10px] h-[6px] bg-error rounded-sm"></div>
+<!-- Viewport rect -->
+<div class="absolute top-[10%] left-[5%] w-[80%] h-[70%] border border-primary/50 bg-primary/10"></div>
+</div>
+</main>
+<!-- 3. Right Panel (Inspection Detail) -->
+<aside class="w-[300px] h-full flex-shrink-0 glass-panel border-l border-outline-variant/30 flex flex-col z-20 shadow-[-20px_0_40px_rgba(0,0,0,0.5)]">
+<!-- Panel Header -->
+<div class="p-5 border-b border-outline-variant/30">
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-['JetBrains_Mono'] text-lg font-bold text-on-surface">apiConfig.ts</h3>
+<button class="text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<p class="text-xs text-on-surface-variant font-['JetBrains_Mono'] truncate">src/services/core/apiConfig.ts</p>
+<!-- Blast Radius Badge -->
+<div class="mt-3 inline-flex items-center gap-1.5 px-2 py-1 bg-error/10 border border-error/30 rounded-DEFAULT">
+<span class="material-symbols-outlined text-[12px] text-error">campaign</span>
+<span class="text-[10px] font-['JetBrains_Mono'] text-error uppercase tracking-wider">Blast Radius: 18</span>
+</div>
+</div>
+<!-- Tabs -->
+<div class="flex border-b border-outline-variant/30">
+<button class="flex-1 py-3 text-xs font-['JetBrains_Mono'] text-primary border-b-2 border-primary bg-primary/5 text-center">Summary</button>
+<button class="flex-1 py-3 text-xs font-['JetBrains_Mono'] text-on-surface-variant hover:bg-surface-container text-center transition-colors">Imports</button>
+<button class="flex-1 py-3 text-xs font-['JetBrains_Mono'] text-on-surface-variant hover:bg-surface-container text-center transition-colors">Deps</button>
+</div>
+<!-- Panel Content -->
+<div class="flex-1 overflow-y-auto p-5">
+<!-- AI Summary Section -->
+<div class="mb-6">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-[14px] text-tertiary">smart_toy</span>
+<span class="text-xs font-['JetBrains_Mono'] text-tertiary uppercase tracking-widest">AI Analysis</span>
+</div>
+<div class="bg-surface-container-highest p-3 rounded-DEFAULT border border-outline-variant/20 font-['JetBrains_Mono'] text-xs text-on-surface leading-relaxed">
+<span class="text-primary">&gt;</span> This module establishes the core Axios instance and interceptors. <br/><br/>
+<span class="text-error">Warning:</span> Modifying the response interceptor here will affect global error handling across 18 downstream components.
+                            <span class="inline-block w-2 h-3 bg-primary align-middle ml-1 opacity-70 animate-pulse"></span>
+</div>
+</div>
+<!-- Details List -->
+<div>
+<h4 class="text-xs font-['JetBrains_Mono'] uppercase tracking-widest text-on-surface-variant mb-3">Module Stats</h4>
+<ul class="space-y-2">
+<li class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Size</span>
+<span class="font-['JetBrains_Mono'] text-on-surface">4.2 KB</span>
+</li>
+<li class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Lines</span>
+<span class="font-['JetBrains_Mono'] text-on-surface">142</span>
+</li>
+<li class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Complexity</span>
+<span class="font-['JetBrains_Mono'] text-[#eab308]">Medium</span>
+</li>
+<li class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Last Modified</span>
+<span class="font-['JetBrains_Mono'] text-on-surface">2 days ago</span>
+</li>
+</ul>
+</div>
+<div class="mt-8">
+<button class="w-full py-2 bg-transparent border border-primary text-primary font-['JetBrains_Mono'] text-xs rounded-DEFAULT hover:bg-primary/10 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[16px]">code</span>
+                            View Source
+                        </button>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RepoGraph - AI Summarizer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#00ef41",
+                        "inverse-on-surface": "#565554",
+                        "primary": "#acffa3",
+                        "surface-container": "#1a1919",
+                        "primary-fixed": "#0dff47",
+                        "on-secondary": "#005a3c",
+                        "on-secondary-fixed-variant": "#006544",
+                        "secondary-container": "#006c49",
+                        "primary-dim": "#00ef41",
+                        "surface-tint": "#acffa3",
+                        "tertiary-container": "#0feafd",
+                        "surface": "#0e0e0e",
+                        "on-primary": "#006516",
+                        "tertiary-fixed": "#0feafd",
+                        "outline-variant": "#494847",
+                        "on-error": "#450900",
+                        "surface-container-highest": "#262626",
+                        "surface-variant": "#262626",
+                        "tertiary": "#8cf2ff",
+                        "on-primary-container": "#005c13",
+                        "on-tertiary-container": "#005159",
+                        "outline": "#777575",
+                        "on-secondary-container": "#e1ffec",
+                        "tertiary-dim": "#00dbed",
+                        "surface-dim": "#0e0e0e",
+                        "error": "#ff7351",
+                        "background": "#0e0e0e",
+                        "secondary": "#69f6b8",
+                        "tertiary-fixed-dim": "#00dbed",
+                        "on-error-container": "#ffd2c8",
+                        "on-tertiary": "#005b63",
+                        "primary-container": "#0dff47",
+                        "on-secondary-fixed": "#00452d",
+                        "on-background": "#ffffff",
+                        "on-primary-fixed": "#00460c",
+                        "secondary-fixed": "#69f6b8",
+                        "on-tertiary-fixed": "#003d42",
+                        "on-tertiary-fixed-variant": "#005c64",
+                        "secondary-dim": "#58e7ab",
+                        "on-surface": "#ffffff",
+                        "error-container": "#b92902",
+                        "inverse-surface": "#fcf8f8",
+                        "inverse-primary": "#006f18",
+                        "surface-container-low": "#131313",
+                        "on-surface-variant": "#adaaaa",
+                        "secondary-fixed-dim": "#58e7ab",
+                        "surface-container-lowest": "#000000",
+                        "error-dim": "#d53d18",
+                        "surface-container-high": "#201f1f",
+                        "on-primary-fixed-variant": "#006716",
+                        "surface-bright": "#2c2c2c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["JetBrains Mono", "monospace"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #050505; /* Enforcing Pure Black base */
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .glass-panel {
+            background: rgba(26, 25, 25, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(13, 255, 71, 0.4); /* primary-container */
+        }
+        .neural-glow {
+            box-shadow: 0 20px 40px rgba(0, 255, 70, 0.08);
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        
+        /* Particle overlay hint */
+        .particle-bg {
+            background-image: radial-gradient(rgba(172, 255, 163, 0.05) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface min-h-screen flex flex-col relative particle-bg">
+<!-- TopNavBar -->
+<nav class="bg-black/40 backdrop-blur-xl flex justify-between items-center px-6 py-3 w-full fixed top-0 z-50 docked full-width top-0 border-b border-[#00ff46]/20 shadow-[0_20px_40px_rgba(0,255,70,0.08)]">
+<div class="flex items-center gap-8">
+<div class="font-['JetBrains_Mono'] font-bold text-xl tracking-tighter text-[#00ff46]">RepoGraph</div>
+<div class="hidden md:flex gap-6 font-['Inter'] font-medium text-sm tracking-tight">
+<a class="text-[#adaaaa] hover:text-white transition-colors hover:bg-[#00ff46]/10 hover:shadow-[0_0_15px_rgba(0,255,70,0.2)] px-3 py-1 rounded" href="#">Explorer</a>
+<a class="text-[#adaaaa] hover:text-white transition-colors hover:bg-[#00ff46]/10 hover:shadow-[0_0_15px_rgba(0,255,70,0.2)] px-3 py-1 rounded" href="#">Graphs</a>
+<a class="text-[#adaaaa] hover:text-white transition-colors hover:bg-[#00ff46]/10 hover:shadow-[0_0_15px_rgba(0,255,70,0.2)] px-3 py-1 rounded" href="#">History</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded-sm font-medium text-sm hover:shadow-[0_0_15px_rgba(0,255,70,0.5)] transition-all">New Repo</button>
+<div class="flex gap-3 text-on-surface-variant">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">settings</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">notifications</span>
+</div>
+<img alt="User Profile" class="w-8 h-8 rounded-full border border-primary/30 object-cover" data-alt="Close up portrait of a young woman with a neutral expression, dark background, professional lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvg37CFA-yJyGzIEqDpF7yXX_OMrhgJOORV6QjzteKG9aX9NmixhOp0LmsyvZgH5OtmwWzk5OB4Oj5tIpxLWI6Exgigtsp0CKrt-MEwA51sS25y9UPc5YT6tbCwgZ6uY32NzfU5qUCN4baNmvcE4YBxdzWzo37NKHrWxiAb3kzr5dy_9f9uTHTKjUbBmq0u_dJ63i888NXtOMmPtc4csGqG35lL7IZsKli2nk9Uhldd195MjtrkaF-xIn3T8xR4O5h4I2ftNe7FXGL"/>
+</div>
+</nav>
+<!-- SideNavBar (Suppressed as per rules for deep dive/task focus, but leaving structural wrapper if needed, choosing to suppress entirely to prioritize canvas) -->
+<!-- Main Content Canvas -->
+<main class="flex-1 flex w-full pt-16 px-6 pb-6 gap-6 h-screen overflow-hidden">
+<!-- Left Column: Code Viewer (55%) -->
+<section class="w-[55%] h-full flex flex-col bg-surface-container-low rounded-sm relative shadow-lg">
+<!-- Breadcrumb Header -->
+<div class="h-12 border-b border-surface-variant flex items-center px-4 bg-surface-container rounded-t-sm z-10 shrink-0">
+<div class="flex items-center text-xs text-on-surface-variant code-font space-x-2">
+<span class="material-symbols-outlined text-sm">folder</span>
+<span class="hover:text-primary cursor-pointer transition-colors">src</span>
+<span class="text-surface-variant">/</span>
+<span class="hover:text-primary cursor-pointer transition-colors">core</span>
+<span class="text-surface-variant">/</span>
+<span class="hover:text-primary cursor-pointer transition-colors">auth</span>
+<span class="text-surface-variant">/</span>
+<span class="text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">description</span>
+                        TokenManager.ts
+                    </span>
+</div>
+<div class="ml-auto flex items-center gap-3 text-xs">
+<span class="bg-surface-variant text-secondary px-2 py-0.5 rounded-sm code-font border border-secondary/20">typescript</span>
+<span class="text-on-surface-variant">428 loc</span>
+</div>
+</div>
+<!-- Code Block -->
+<div class="flex-1 overflow-y-auto no-scrollbar bg-[#0a0a0a] relative p-4 code-font text-sm leading-relaxed">
+<!-- Line Numbers (Muted Green) & Code -->
+<table class="w-full border-collapse">
+<tbody>
+<!-- Normal Line -->
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">1</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"><span class="text-[#c678dd]">import</span> { JwtPayload } <span class="text-[#c678dd]">from</span> <span class="text-[#98c379]">'jsonwebtoken'</span>;</td>
+</tr>
+<!-- Highlighted Import Line -->
+<tr class="group bg-primary/5 border-l-2 border-primary">
+<td class="w-12 text-right pr-4 text-primary align-top pt-[2px]">2</td>
+<td class="pl-2 whitespace-pre text-on-surface"><span class="text-[#c678dd]">import</span> { RedisCache } <span class="text-[#c678dd]">from</span> <span class="text-[#98c379]">'@infrastructure/cache'</span>;</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">3</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"><span class="text-[#c678dd]">import</span> { UnauthorizedError } <span class="text-[#c678dd]">from</span> <span class="text-[#98c379]">'@errors/auth'</span>;</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">4</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"></td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">5</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"><span class="text-[#c678dd]">export class</span> <span class="text-[#e5c07b]">TokenManager</span> {</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">6</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"> <span class="text-[#c678dd]">private readonly</span> cache: RedisCache;</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">7</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"> <span class="text-[#c678dd]">private readonly</span> secret: <span class="text-[#e5c07b]">string</span>;</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">8</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"></td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">9</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"> <span class="text-[#c678dd]">constructor</span>() {</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">10</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"> <span class="text-[#d19a66]">this</span>.cache = <span class="text-[#56b6c2]">new</span> <span class="text-[#e5c07b]">RedisCache</span>();</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">11</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"> <span class="text-[#d19a66]">this</span>.secret = process.env.<span class="text-[#e06c75]">JWT_SECRET</span> || <span class="text-[#98c379]">'default_dev_secret'</span>;</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">12</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant">  }</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">13</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"></td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">14</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"> <span class="text-[#c678dd]">public async</span> <span class="text-[#61afef]">validateToken</span>(token: <span class="text-[#e5c07b]">string</span>): <span class="text-[#e5c07b]">Promise</span>&lt;<span class="text-[#e5c07b]">JwtPayload</span>&gt; {</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">15</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"> <span class="text-[#c678dd]">if</span> (!token) <span class="text-[#c678dd]">throw new</span> <span class="text-[#e5c07b]">UnauthorizedError</span>(<span class="text-[#98c379]">'No token provided'</span>);</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">16</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"> </td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">17</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"> <span class="text-[#c678dd]">const</span> isBlacklisted = <span class="text-[#c678dd]">await</span> <span class="text-[#d19a66]">this</span>.cache.<span class="text-[#61afef]">get</span>(`bl_${token}`);</td>
+</tr>
+<tr class="group bg-error/10 border-l-2 border-error">
+<td class="w-12 text-right pr-4 text-error align-top pt-[2px]">18</td>
+<td class="pl-2 whitespace-pre text-on-surface"><span class="text-[#c678dd]">if</span> (isBlacklisted) <span class="text-[#c678dd]">throw new</span> <span class="text-[#e5c07b]">UnauthorizedError</span>(<span class="text-[#98c379]">'Token blacklisted'</span>); <span class="text-error-dim/70 italic">// Critical Path</span></td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">19</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"></td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">20</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant"> <span class="text-[#c678dd]">return</span> jwt.verify(token, <span class="text-[#d19a66]">this</span>.secret) <span class="text-[#c678dd]">as</span> <span class="text-[#e5c07b]">JwtPayload</span>;</td>
+</tr>
+<tr class="group hover:bg-surface-container-high/50 transition-colors">
+<td class="w-12 text-right pr-4 text-primary-dim/40 select-none align-top pt-[2px]">21</td>
+<td class="pl-2 whitespace-pre text-on-surface-variant">  }</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Right Column: Stacked Cards (45%) -->
+<section class="w-[45%] h-full flex flex-col gap-4 overflow-y-auto no-scrollbar relative pb-20">
+<!-- Card 1: AI Summary -->
+<div class="glass-panel rounded-sm p-5 neural-glow flex flex-col gap-3">
+<div class="flex justify-between items-center">
+<h2 class="text-sm font-semibold tracking-wide text-primary flex items-center gap-2 uppercase font-['JetBrains_Mono']">
+<span class="material-symbols-outlined text-[18px]">psychiatry</span>
+                        Neural Analysis
+                    </h2>
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+</span>
+</div>
+<p class="text-sm text-on-surface-variant leading-relaxed">
+<span class="text-on-surface font-medium">TokenManager.ts</span> handles core JWT lifecycle events. It interfaces heavily with <code class="code-font text-secondary bg-surface px-1 py-0.5 rounded text-xs">RedisCache</code> for token blacklisting. 
+                    <br/><br/>
+<span class="opacity-80">Streaming recent insights...</span> The latest commit modified line 18, introducing a strict check for blacklisted tokens before payload verification, tightening security but increasing cache dependency.
+                </p>
+<div class="mt-2 flex gap-2">
+<span class="bg-surface-variant text-secondary px-2 py-1 rounded-sm code-font text-[10px] uppercase border border-secondary/10">Auth Layer</span>
+<span class="bg-surface-variant text-secondary px-2 py-1 rounded-sm code-font text-[10px] uppercase border border-secondary/10">High Frequency</span>
+</div>
+</div>
+<!-- Card 2: Mini Dependency Map -->
+<div class="glass-panel rounded-sm p-5 neural-glow flex flex-col gap-3 h-48 relative overflow-hidden">
+<div class="flex justify-between items-center z-10">
+<h2 class="text-sm font-semibold tracking-wide text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">hub</span>
+                        Local Topography
+                    </h2>
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary cursor-pointer text-sm">open_in_full</span>
+</div>
+<!-- Embedded Subgraph Mockup -->
+<div class="absolute inset-0 top-12 flex items-center justify-center pointer-events-none opacity-80">
+<!-- Central Node -->
+<div class="absolute z-20 w-16 h-8 bg-primary/20 border border-primary text-primary flex items-center justify-center rounded-sm text-[10px] code-font shadow-[0_0_15px_rgba(0,255,70,0.4)] backdrop-blur-sm">TokenM...</div>
+<!-- Downstream Node 1 -->
+<div class="absolute z-10 w-14 h-6 bg-surface-container-high border border-outline-variant text-on-surface-variant flex items-center justify-center rounded-sm text-[8px] code-font -translate-x-20 translate-y-12">AuthMid...</div>
+<svg class="absolute w-full h-full" style="z-index: 5;">
+<line opacity="0.5" stroke="#0dff47" stroke-dasharray="2,2" stroke-width="1" x1="50%" x2="35%" y1="50%" y2="70%"></line>
+</svg>
+<!-- Downstream Node 2 -->
+<div class="absolute z-10 w-14 h-6 bg-surface-container-high border border-outline-variant text-on-surface-variant flex items-center justify-center rounded-sm text-[8px] code-font translate-x-16 translate-y-16">LoginCtrl</div>
+<svg class="absolute w-full h-full" style="z-index: 5;">
+<line opacity="0.5" stroke="#0dff47" stroke-dasharray="2,2" stroke-width="1" x1="50%" x2="65%" y1="50%" y2="75%"></line>
+</svg>
+<!-- Upstream Node -->
+<div class="absolute z-10 w-14 h-6 bg-surface-container-high border border-outline-variant text-on-surface-variant flex items-center justify-center rounded-sm text-[8px] code-font -translate-x-10 -translate-y-14">RedisCa...</div>
+<svg class="absolute w-full h-full" style="z-index: 5;">
+<line opacity="0.5" stroke="#777575" stroke-width="1" x1="50%" x2="40%" y1="50%" y2="30%"></line>
+</svg>
+</div>
+</div>
+<!-- Card 3: Blast Radius Report -->
+<div class="glass-panel rounded-sm p-5 neural-glow flex flex-col gap-4">
+<h2 class="text-sm font-semibold tracking-wide text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">adjust</span>
+                    Blast Radius Matrix
+                </h2>
+<div class="grid grid-cols-3 gap-4">
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-on-surface-variant code-font mb-1">Imports</span>
+<span class="text-xl font-bold text-on-surface">4</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-on-surface-variant code-font mb-1">Imported By</span>
+<span class="text-xl font-bold text-on-surface">23</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] uppercase text-on-surface-variant code-font mb-1">Centrality</span>
+<span class="text-xl font-bold text-error">0.89</span>
+</div>
+</div>
+<!-- Warning Alert -->
+<div class="bg-error/10 border-l-2 border-error p-3 rounded-r-sm flex gap-3 items-start mt-2">
+<span class="material-symbols-outlined text-error text-lg shrink-0">warning</span>
+<p class="text-xs text-error-container leading-tight">
+<strong class="block text-error mb-1">High Centrality Detected</strong>
+                        Changing this file affects 23 downstream modules. Strict testing required.
+                    </p>
+</div>
+<!-- Green Fill Bar -->
+<div class="mt-2">
+<div class="flex justify-between text-[10px] code-font text-on-surface-variant mb-1">
+<span>Impact Score</span>
+<span class="text-primary">89/100</span>
+</div>
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-gradient-to-r from-error-dim to-error h-full rounded-full" style="width: 89%"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Fixed Bottom Input Field -->
+<div class="fixed bottom-6 right-6 w-[43%] glass-panel rounded-sm p-2 flex items-center gap-3 z-20 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] border border-surface-variant bg-surface-container-highest/80">
+<span class="material-symbols-outlined text-primary ml-2 text-xl">temp_preferences_custom</span>
+<input class="w-full bg-transparent border-none text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:ring-0 px-2 py-2" placeholder="Ask Claude about TokenManager.ts..." type="text"/>
+<button class="bg-primary/10 hover:bg-primary/20 text-primary p-2 rounded-sm transition-colors border border-primary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">send</span>
+</button>
+</div>
+</main>
+</body></html>

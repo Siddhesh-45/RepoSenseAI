@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RepoGraph - Analysis Loading View</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed-dim": "#00ef41",
+                    "inverse-on-surface": "#565554",
+                    "primary": "#acffa3",
+                    "surface-container": "#1a1919",
+                    "primary-fixed": "#0dff47",
+                    "on-secondary": "#005a3c",
+                    "on-secondary-fixed-variant": "#006544",
+                    "secondary-container": "#006c49",
+                    "primary-dim": "#00ef41",
+                    "surface-tint": "#acffa3",
+                    "tertiary-container": "#0feafd",
+                    "surface": "#0e0e0e",
+                    "on-primary": "#006516",
+                    "tertiary-fixed": "#0feafd",
+                    "outline-variant": "#494847",
+                    "on-error": "#450900",
+                    "surface-container-highest": "#262626",
+                    "surface-variant": "#262626",
+                    "tertiary": "#8cf2ff",
+                    "on-primary-container": "#005c13",
+                    "on-tertiary-container": "#005159",
+                    "outline": "#777575",
+                    "on-secondary-container": "#e1ffec",
+                    "tertiary-dim": "#00dbed",
+                    "surface-dim": "#0e0e0e",
+                    "error": "#ff7351",
+                    "background": "#0e0e0e",
+                    "secondary": "#69f6b8",
+                    "tertiary-fixed-dim": "#00dbed",
+                    "on-error-container": "#ffd2c8",
+                    "on-tertiary": "#005b63",
+                    "primary-container": "#0dff47",
+                    "on-secondary-fixed": "#00452d",
+                    "on-background": "#ffffff",
+                    "on-primary-fixed": "#00460c",
+                    "secondary-fixed": "#69f6b8",
+                    "on-tertiary-fixed": "#003d42",
+                    "on-tertiary-fixed-variant": "#005c64",
+                    "secondary-dim": "#58e7ab",
+                    "on-surface": "#ffffff",
+                    "error-container": "#b92902",
+                    "inverse-surface": "#fcf8f8",
+                    "inverse-primary": "#006f18",
+                    "surface-container-low": "#131313",
+                    "on-surface-variant": "#adaaaa",
+                    "secondary-fixed-dim": "#58e7ab",
+                    "surface-container-lowest": "#000000",
+                    "error-dim": "#d53d18",
+                    "surface-container-high": "#201f1f",
+                    "on-primary-fixed-variant": "#006716",
+                    "surface-bright": "#2c2c2c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {},
+            "fontFamily": {
+                    "headline": [
+                            "Inter"
+                    ],
+                    "body": [
+                            "Inter"
+                    ],
+                    "label": [
+                            "Inter"
+                    ],
+                    "mono": [
+                            "JetBrains Mono"
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body min-h-screen flex flex-col relative overflow-hidden">
+<!-- Atmospheric Background (Matrix-style abstraction) -->
+<div aria-hidden="true" class="absolute inset-0 pointer-events-none opacity-[0.03] flex justify-between z-0">
+<div class="w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent mx-8"></div>
+<div class="w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent mx-8 mt-32"></div>
+<div class="w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent mx-8 mt-12"></div>
+<div class="w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent mx-8 mt-64"></div>
+<div class="w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent mx-8 mt-24"></div>
+<div class="w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent mx-8 mt-48"></div>
+<div class="w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent mx-8 mt-8"></div>
+<div class="w-px h-full bg-gradient-to-b from-transparent via-primary to-transparent mx-8 mt-56"></div>
+</div>
+<!-- Header / Context -->
+<header class="w-full flex justify-between items-center px-6 py-6 z-10">
+<div class="font-mono font-black text-xl tracking-tighter text-primary">RepoGraph</div>
+<div class="font-mono text-xs text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">link</span>
+            github.com/project-neural/core
+        </div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col items-center justify-center z-10 px-4">
+<!-- Animated Ring Area -->
+<div class="relative w-64 h-64 flex items-center justify-center mb-12">
+<!-- Glow Effect -->
+<div class="absolute inset-0 rounded-full shadow-[0_0_60px_rgba(0,255,70,0.15)] bg-primary/5 backdrop-blur-[2px]"></div>
+<!-- SVG Progress Ring -->
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<!-- Background Circle -->
+<circle class="text-surface-container-high" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-width="2"></circle>
+<!-- Progress Circle -->
+<circle class="text-primary drop-shadow-[0_0_10px_rgba(0,255,70,0.5)]" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-dasharray="283" stroke-dashoffset="56" stroke-linecap="round" stroke-width="2"></circle>
+</svg>
+<!-- Percentage Display -->
+<div class="absolute flex flex-col items-center justify-center">
+<span class="font-mono text-5xl font-bold text-on-surface tracking-tighter">80%</span>
+<span class="font-mono text-xs text-primary mt-2 uppercase tracking-widest">Processing</span>
+</div>
+</div>
+<!-- Terminal Log Box -->
+<div class="w-full max-w-2xl bg-surface/80 backdrop-blur-xl rounded border-t border-primary/40 shadow-[0_20px_40px_rgba(0,0,0,0.5)] overflow-hidden">
+<!-- Terminal Header -->
+<div class="flex items-center px-4 py-2 bg-surface-container-low border-b border-surface-container-high">
+<div class="flex gap-2 mr-4">
+<div class="w-2.5 h-2.5 rounded-full bg-surface-container-highest"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-container-highest"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-container-highest"></div>
+</div>
+<div class="font-mono text-[10px] text-on-surface-variant uppercase tracking-widest flex-1 text-center pr-8">
+                    Analysis Stream
+                </div>
+</div>
+<!-- Terminal Content -->
+<div class="p-6 font-mono text-sm leading-loose">
+<div class="text-on-surface-variant">&gt; Cloning repository...</div>
+<div class="text-on-surface-variant">&gt; Fetching file tree (247 files)</div>
+<div class="text-on-surface-variant">&gt; Running AST parser on src/...</div>
+<div class="text-on-surface-variant">&gt; Building dependency graph...</div>
+<div class="text-on-surface">&gt; Sending to Claude for analysis...</div>
+<div class="flex items-center text-primary mt-4 font-bold">
+<span>&gt; Graph building in progress</span>
+<span class="w-2 h-4 bg-primary ml-2 animate-pulse shadow-[0_0_8px_rgba(0,255,70,0.8)]"></span>
+</div>
+</div>
+</div>
+</main>
+</body></html>
