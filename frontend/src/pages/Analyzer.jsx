@@ -64,6 +64,15 @@ export default function Analyzer() {
         setTimeout(() => {
           setGraphData(data);
           setLoading(false);
+          
+          // Log dependencies for EACH AND EVERY node into the browser console as requested!
+          console.group('\n📊 MADGE DEPENDENCY GRAPH OUTPUT (ALL NODES):');
+          data.nodes.forEach(node => {
+            console.log(`\n📄 Node: ${node.id}`);
+            console.log(`   ➡ Imports (Dependencies):`, node.deps || []);
+          });
+          console.groupEnd();
+          
         }, 500);
       } catch (err) {
         setError(err.response?.data?.message || err.message || 'Analysis failed');
@@ -91,6 +100,25 @@ export default function Analyzer() {
     setSidebarTab('info');
     setSearchOpen(false);
     setSearchHighlights([]);
+    
+    // Log the Madge tool dependencies and AI explanation straight to the browser console
+    console.log(`\n📌 Node Selected: ${nodeData.fullPath || nodeData.id}`);
+    console.log(`📦 Imports (Dependencies from Madge):`, nodeData.deps || []);
+    
+    // Find the dependents (Used By)
+    setGraphData(currentGraph => {
+      if (currentGraph) {
+        const pathIdentifier = nodeData.fullPath || nodeData.id || '';
+        const usedBy = currentGraph.nodes.filter(n => n.deps && n.deps.some(d => 
+          d === pathIdentifier || d.endsWith(pathIdentifier) || pathIdentifier.endsWith(d)
+        )).map(n => n.id);
+        
+        console.log(`🔗 Used By (Dependents):`, usedBy);
+      }
+      return currentGraph;
+    });
+    
+    console.log(`🤖 AI Explanation:`, nodeData.ai || 'None');
   }, []);
 
   const handleSearchHighlight = useCallback((ids) => {
