@@ -1,14 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Landing from './pages/Landing';
-import Analyzer from './pages/Analyzer';
-import './index.css';
+import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/analyze" element={<Analyzer />} />
+        <Route path="/dashboard/:repoId" element={<Dashboard />} />
       </Routes>
     </Router>
   );
