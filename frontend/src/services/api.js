@@ -31,3 +31,12 @@ export async function askQuestion(question, nodes) {
   const response = await axios.post(`${API_BASE}/qa`, { question, nodes });
   return response.data; // { answer, sources }
 }
+
+/**
+ * Generate structured semantic analysis for a single node during graph traversal.
+ * @returns {Promise<Object>}
+ */
+export async function analyzeSemantic(nodeId, nodes, edges) {
+  const response = await axios.post(`${API_BASE}/semantic`, { nodeId, nodes, edges });
+  return response.data;
+}

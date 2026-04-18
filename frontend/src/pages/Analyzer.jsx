@@ -9,6 +9,7 @@ import MetricsBar from '../components/Dashboard/MetricsBar';
 import QueryBar from '../components/Search/QueryBar';
 import AnalysisLoader from '../components/Loading/AnalysisLoader';
 import { analyzeRepo, uploadRepoZip } from '../services/api';
+import { useTraversal } from '../hooks/useTraversal';
 
 export default function Analyzer() {
   const location = useLocation();
@@ -25,6 +26,8 @@ export default function Analyzer() {
   const [sidebarTab, setSidebarTab] = useState('overview');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchHighlights, setSearchHighlights] = useState([]);
+  
+  const traversal = useTraversal(graphData);
 
   // Extract repo name for display
   const repoName = isZip 
@@ -217,6 +220,7 @@ export default function Analyzer() {
             selectedNodeId={selectedNode?.fullPath}
             onNodeSelect={handleNodeSelect}
             searchHighlights={searchHighlights}
+            traversalState={traversal}
           />
         </div>
 

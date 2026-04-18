@@ -13,6 +13,7 @@ import { buildOnboardingPath } from '../modules/onboardingPath.js';
 import { searchNodes } from '../modules/queryEngine.js';
 import { buildGraph } from '../modules/graphBuilder.js';
 import { answerQuestion } from '../modules/qaEngine.js';
+import { generateSemanticAnalysis } from '../modules/semanticEngine.js';
 import { cleanup } from '../utils/cleanup.js';
 import { getCachedAnalysis, setCachedAnalysis } from '../utils/cache.js';
 
@@ -204,6 +205,22 @@ router.post('/qa', async (req, res) => {
   } catch (err) {
     console.error('❌ QA route error:', err.message);
     return res.status(500).json({ error: 'QA failed', message: err.message });
+  }
+});
+
+/**
+ * POST /api/semantic
+ */
+router.post('/semantic', async (req, res) => {
+  const { nodeId, nodes, edges } = req.body;
+  if (!nodeId || !nodes || !edges) return res.status(400).json({ error: 'nodeId, nodes, and edges are required' });
+
+  try {
+    const report = await generateSemanticAnalysis(nodeId, nodes, edges);
+    return res.json(report);
+  } catch (err) {
+    console.error('❌ Semantic Engine error:', err.message);
+    return res.status(500).json({ error: 'Semantic analysis failed', message: err.message });
   }
 });
 
