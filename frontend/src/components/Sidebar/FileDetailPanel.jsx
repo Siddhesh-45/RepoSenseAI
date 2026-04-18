@@ -61,7 +61,7 @@ export default function FileDetailPanel({ node, allNodes, onNodeSelect }) {
         )}
       </div>
 
-      {/* AI Summary */}
+      {/* AI Explanation — includes Madge deps, Used By, and AI summary */}
       <div style={{ marginBottom: '1.5rem' }}>
         <p className="font-mono" style={{
           color: 'var(--accent-end)', fontSize: '0.6rem', letterSpacing: '0.1em',
@@ -73,11 +73,72 @@ export default function FileDetailPanel({ node, allNodes, onNodeSelect }) {
           background: 'var(--bg-nested)', borderRadius: '0.375rem',
           padding: '0.875rem',
         }}>
+          {/* AI Description */}
           <p style={{
             color: 'var(--text-secondary)', fontSize: '0.8125rem', lineHeight: 1.6,
+            marginBottom: '0.75rem',
           }}>
             {node.ai || 'No summary available.'}
           </p>
+
+          {/* Madge Dependencies (Imports) */}
+          <div style={{ marginBottom: '0.625rem' }}>
+            <p className="font-mono" style={{
+              color: 'var(--accent-end)', fontSize: '0.6rem', letterSpacing: '0.08em',
+              textTransform: 'uppercase', marginBottom: '0.375rem', fontWeight: 600, opacity: 0.8,
+            }}>
+              📦 Dependencies (Madge) — {node.deps?.length || 0}
+            </p>
+            {node.deps && node.deps.length > 0 ? (
+              <ul style={{ margin: 0, paddingLeft: '1rem', listStyle: 'none' }}>
+                {node.deps.map(dep => (
+                  <li key={dep} className="font-mono" style={{
+                    color: '#8be9fd', fontSize: '0.75rem', lineHeight: 1.8,
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => {
+                    const depNode = allNodes?.find(n => n.id === dep || dep.endsWith(n.id) || n.id.endsWith(dep));
+                    if (depNode) onNodeSelect(depNode);
+                  }}
+                  >
+                    → {dep}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="font-mono" style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', opacity: 0.5 }}>
+                No dependencies (standalone module)
+              </p>
+            )}
+          </div>
+
+          {/* Used By (Dependents) */}
+          <div>
+            <p className="font-mono" style={{
+              color: 'var(--accent-end)', fontSize: '0.6rem', letterSpacing: '0.08em',
+              textTransform: 'uppercase', marginBottom: '0.375rem', fontWeight: 600, opacity: 0.8,
+            }}>
+              🔗 Used By — {dependents.length}
+            </p>
+            {dependents.length > 0 ? (
+              <ul style={{ margin: 0, paddingLeft: '1rem', listStyle: 'none' }}>
+                {dependents.map(dep => (
+                  <li key={dep.id} className="font-mono" style={{
+                    color: '#ff79c6', fontSize: '0.75rem', lineHeight: 1.8,
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => onNodeSelect(dep)}
+                  >
+                    ← {dep.id}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="font-mono" style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', opacity: 0.5 }}>
+                No dependents (leaf node)
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
