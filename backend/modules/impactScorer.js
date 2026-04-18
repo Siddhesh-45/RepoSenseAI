@@ -1,7 +1,24 @@
 /**
- * Score file impact based on incoming edges (how many files import this file)
- * Score = incoming_edge_count capped at 10
- * highImpact = true if score >= 7
+ * Purpose:
+ * Scores the relative impact of every file in the dependency graph based on
+ * how many other files depend on it (incoming edge count).
+ *
+ * Role in System:
+ * Acts as the topology-analysis layer between raw dependency mapping and final
+ * graph assembly. Its output directly determines node sizing/highlighting in
+ * the frontend visualizer and drives the AI summarizer's file-priority order.
+ *
+ * Key Responsibility:
+ * Counts incoming edges for each file, clamps the value to a 0–10 scale, and
+ * flags files with score ≥ 7 as high-impact critical nodes. Handles both
+ * direct matches and extension-less / index-fallback path resolution.
+ *
+ * Important Insight:
+ * Used by the analyze route as Step 4 of the 8-step pipeline, immediately
+ * before AI summarization. This file depends on 0 modules (pure JS) and is
+ * used by 2 files (routes/analyze.js and modules/aiSummarizer.js — scores
+ * are passed into the summarizer to prioritize its top-30 selection).
+ * It likely handles topological ranking and hotspot detection.
  */
 export function scoreImpact(deps) {
   // Count incoming edges for each file

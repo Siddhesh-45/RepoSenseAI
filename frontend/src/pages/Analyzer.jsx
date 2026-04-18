@@ -3,41 +3,37 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import GraphCanvas from '../components/Graph/GraphCanvas';
 import FileDetailPanel from '../components/Sidebar/FileDetailPanel';
 import OnboardingPath from '../components/Onboarding/OnboardingPath';
+import RepoOverviewPanel from '../components/Sidebar/RepoOverviewPanel';
+import ActivitySidebar from '../components/Sidebar/ActivitySidebar';
 import MetricsBar from '../components/Dashboard/MetricsBar';
 import QueryBar from '../components/Search/QueryBar';
 import AnalysisLoader from '../components/Loading/AnalysisLoader';
-import { analyzeRepo } from '../services/api';
-
-/* Icon sidebar items */
-const sidebarIcons = [
-  { id: 'graph', icon: '⬡', tooltip: 'Graph' },
-  { id: 'info', icon: '◉', tooltip: 'Info' },
-  { id: 'path', icon: '⟐', tooltip: 'Path' },
-  { id: 'search', icon: '⌘', tooltip: 'Search' },
-];
+import { analyzeRepo, uploadRepoZip } from '../services/api';
 
 export default function Analyzer() {
   const location = useLocation();
   const navigate = useNavigate();
   const repoUrl = location.state?.repoUrl;
+  const isZip = location.state?.isZip;
+  const file = location.state?.file;
 
   const [graphData, setGraphData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [sidebarTab, setSidebarTab] = useState('info');
+  const [sidebarTab, setSidebarTab] = useState('overview');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchHighlights, setSearchHighlights] = useState([]);
 
   // Extract repo name for display
-  const repoName = repoUrl
-    ? repoUrl.replace('https://github.com/', '').replace(/\.git$/, '')
-    : 'repository';
+  const repoName = isZip 
+    ? (file?.name || 'Uploaded ZIP')
+    : (repoUrl ? repoUrl.split('/').pop().replace(/\.git$/, '') : '');
 
   // Fetch data on mount
   useEffect(() => {
-    if (!repoUrl) {
+    if (!repoUrl && !isZip) {
       navigate('/');
       return;
     }
@@ -56,7 +52,13 @@ export default function Analyzer() {
           });
         }, 3000);
 
-        const data = await analyzeRepo(repoUrl);
+        let data;
+        if (isZip && file) {
+          data = await uploadRepoZip(file);
+        } else {
+          data = await analyzeRepo(repoUrl);
+        }
+        
         clearInterval(stepInterval);
         setLoadingStep(5);
 
@@ -149,12 +151,12 @@ export default function Analyzer() {
       }}>
         {/* Left: Logo + Search */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <span className="font-mono" style={{
-            color: 'var(--accent-start)', fontSize: '0.875rem', fontWeight: 700,
-            cursor: 'pointer',
+          <h2 className="repo-title" style={{
+            color: '#00ffcc', fontSize: '18px', fontWeight: 600,
+            cursor: 'pointer', margin: 0
           }} onClick={() => navigate('/')}>
-            ⬡ RepoNav AI
-          </span>
+            {repoName ? `Repository: ${repoName}` : "⬡ RepoNav AI"}
+          </h2>
           <div
             onClick={() => setSearchOpen(true)}
             className="font-mono"
@@ -201,36 +203,12 @@ export default function Analyzer() {
 
       {/* ── Main Layout ── */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left icon sidebar */}
-        <div style={{
-          width: 48, background: 'var(--bg-surface)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          paddingTop: '0.75rem', gap: '0.25rem',
-          borderRight: '1px solid rgba(255,255,255,0.04)',
-        }}>
-          {sidebarIcons.map(item => (
-            <button
-              key={item.id}
-              onClick={() => {
-                if (item.id === 'search') setSearchOpen(true);
-                else setSidebarTab(item.id === 'graph' ? 'info' : item.id);
-              }}
-              title={item.tooltip}
-              style={{
-                width: 36, height: 36, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', background: 'transparent', border: 'none',
-                color: (sidebarTab === item.id || (item.id === 'graph' && sidebarTab === 'info'))
-                  ? 'var(--accent-end)' : 'var(--text-secondary)',
-                fontSize: '1rem', cursor: 'pointer', borderRadius: '0.375rem',
-                transition: 'all 0.2s',
-                opacity: (sidebarTab === item.id || (item.id === 'graph' && sidebarTab === 'info'))
-                  ? 1 : 0.5,
-              }}
-            >
-              {item.icon}
-            </button>
-          ))}
-        </div>
+        {/* Left: Activity Sidebar (Explorer + Source Control) */}
+        <ActivitySidebar
+          graphData={graphData}
+          onNodeSelect={handleNodeSelect}
+          selectedNodeId={selectedNode?.fullPath || selectedNode?.id}
+        />
 
         {/* Center: Graph Canvas */}
         <div style={{ flex: 1, position: 'relative' }}>
@@ -254,6 +232,19 @@ export default function Analyzer() {
             display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.04)',
           }}>
             <button
+              onClick={() => setSidebarTab('overview')}
+              className="font-mono"
+              style={{
+                flex: 1, padding: '0.625rem', background: 'transparent', border: 'none',
+                color: sidebarTab === 'overview' ? 'var(--accent-end)' : 'var(--text-secondary)',
+                fontSize: '0.6875rem', cursor: 'pointer', letterSpacing: '0.05em',
+                borderBottom: sidebarTab === 'overview' ? '1px solid var(--accent-end)' : '1px solid transparent',
+                transition: 'all 0.2s',
+              }}
+            >
+              OVERVIEW
+            </button>
+            <button
               onClick={() => setSidebarTab('info')}
               className="font-mono"
               style={{
@@ -264,7 +255,7 @@ export default function Analyzer() {
                 transition: 'all 0.2s',
               }}
             >
-              INFO
+              FILE INFO
             </button>
             <button
               onClick={() => setSidebarTab('path')}
@@ -283,19 +274,61 @@ export default function Analyzer() {
 
           {/* Tab content */}
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            {sidebarTab === 'info' ? (
+            {sidebarTab === 'overview' ? (
+              <RepoOverviewPanel repoSummary={graphData.repoSummary} />
+            ) : sidebarTab === 'info' ? (
               <FileDetailPanel
                 node={selectedNode}
                 allNodes={graphData.nodes}
                 onNodeSelect={handleNodeSelect}
               />
-            ) : (
-              <OnboardingPath
-                path={graphData.onboardingPath}
-                nodes={graphData.nodes}
-                onNodeSelect={handleNodeSelect}
-              />
-            )}
+            ) : (() => {
+              // When a node is selected, filter the path to only include:
+              // 1. The selected node itself
+              // 2. All path entries that appear BEFORE it (ancestor chain up to it)
+              // 3. All path entries that are direct/transitive deps of the selected node
+              let displayPath = graphData.onboardingPath;
+              if (selectedNode) {
+                const selectedId = selectedNode.fullPath || selectedNode.id;
+                const selectedInPath = graphData.onboardingPath.includes(selectedId);
+
+                if (selectedInPath) {
+                  const selectedIndex = graphData.onboardingPath.indexOf(selectedId);
+
+                  // Collect all transitive deps of the selected node (BFS through graphData.nodes)
+                  const selectedNodeData = graphData.nodes.find(n => n.id === selectedId);
+                  const transitiveDepSet = new Set();
+                  const queue = [...(selectedNodeData?.deps || [])];
+                  while (queue.length > 0) {
+                    const dep = queue.shift();
+                    // Resolve partial dep name to full node id
+                    const resolved = graphData.nodes.find(n =>
+                      n.id === dep || n.id.endsWith('/' + dep) || n.id.endsWith(dep)
+                    );
+                    if (resolved && !transitiveDepSet.has(resolved.id)) {
+                      transitiveDepSet.add(resolved.id);
+                      queue.push(...(resolved.deps || []));
+                    }
+                  }
+
+                  // Include: ancestors in path (index < selectedIndex) + selected node + transitive deps
+                  displayPath = graphData.onboardingPath.filter((fileId, idx) => {
+                    if (fileId === selectedId) return true;        // the node itself
+                    if (idx < selectedIndex) return true;           // all ancestors before it
+                    return transitiveDepSet.has(fileId);            // transitive deps after it
+                  });
+                }
+              }
+
+              return (
+                <OnboardingPath
+                  path={displayPath}
+                  nodes={graphData.nodes}
+                  onNodeSelect={handleNodeSelect}
+                  selectedNodeId={selectedNode ? (selectedNode.fullPath || selectedNode.id) : null}
+                />
+              );
+            })()}
           </div>
         </div>
       </div>

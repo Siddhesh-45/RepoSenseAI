@@ -3,8 +3,24 @@ import path from 'path';
 import fs from 'fs';
 
 /**
- * Run Madge on cloned repository to extract dependency tree
- * Returns raw dependency object: { 'index.js': ['app.js', 'utils.js'] }
+ * Purpose:
+ * Extracts the full dependency tree from a cloned repository using Madge.
+ *
+ * Role in System:
+ * Acts as the pipeline's data-collection backbone — the raw output it produces
+ * (a flat dependency map) is the input consumed by every other backend module.
+ *
+ * Key Responsibility:
+ * Runs Madge against JS/TS source files to generate a dependency object of the
+ * form { 'index.js': ['app.js', 'utils.js'] }. Falls back to a regex-based
+ * manual scanner when Madge fails on exotic project structures.
+ *
+ * Important Insight:
+ * Used by the analyze route as Step 2 of the 8-step pipeline, making it the
+ * first critical filter — nothing downstream runs if this returns an empty map.
+ * This file depends on 3 modules (madge, path, fs) and is used by 1 file
+ * (routes/analyze.js). It likely handles JS/TS static import resolution,
+ * source-directory discovery, and graceful fallback scanning.
  */
 export async function analyzeDependencies(clonePath) {
   console.log(`🔍 Analyzing dependencies in ${clonePath}...`);

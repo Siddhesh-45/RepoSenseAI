@@ -49,13 +49,13 @@ export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, s
     const isHighlighted = searchHighlights.length > 0 && searchHighlights.includes(node.id);
     const isFaded = searchHighlights.length > 0 && !isHighlighted;
     
-    const size = node.val;
+    const size = node.val * 2.5; // Bigger nodes preserved
     const color = node.color;
     
-    // Draw planet glow
+    // Draw planet outer glow
     ctx.beginPath();
     ctx.arc(node.x, node.y, size * 1.5, 0, 2 * Math.PI, false);
-    ctx.fillStyle = isSelected ? `${color}40` : `${color}20`; // Hex alpha
+    ctx.fillStyle = isSelected ? `${color}60` : `${color}20`; // Hex alpha
     ctx.fill();
 
     // Draw planet core
@@ -65,15 +65,17 @@ export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, s
     
     if (isSelected || node.highImpact) {
       ctx.shadowColor = node.highImpact ? '#ef4444' : color;
-      ctx.shadowBlur = node.highImpact ? 25 : 15;
+      ctx.shadowBlur = node.highImpact ? 30 : 20;
     } else {
-      ctx.shadowBlur = 0;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 10;
     }
     
     ctx.fill();
     ctx.shadowBlur = 0; // reset
+    ctx.shadowColor = "transparent"; // reset
 
-    // Draw text
+    // Draw text (centered below planet)
     if (!isFaded) {
       const fontSize = isSelected ? 12 / globalScale : 8 / globalScale;
       ctx.font = `${fontSize}px Inter, monospace`;
@@ -106,19 +108,22 @@ export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, s
         backgroundColor="#050505"
         linkColor={(link) => {
           const isSelected = selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId);
-          return isSelected ? '#0dff47' : 'rgba(255,255,255,0.06)';
+          return isSelected ? '#0dff47' : 'rgba(255,255,255,0.03)'; // Barely visible until clicked
         }}
         linkWidth={(link) => {
-          return (selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId)) ? 2 : 1;
+          return (selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId)) ? 3 : 1;
         }}
-        linkDirectionalParticles={2}
+        linkDirectionalParticles={(link) => {
+          const isSelected = selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId);
+          return isSelected ? 3 : 0; // Edges "created" with flow only when clicked
+        }}
         linkDirectionalParticleWidth={(link) => {
-          return (selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId)) ? 3 : 0;
+          return (selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId)) ? 4 : 0; // TASK 2: Particle width
         }}
         linkDirectionalParticleSpeed={0.005}
-        d3VelocityDecay={0.3} // Make it more smooth and floaty
-        warmupTicks={100} // Pre-calculate stable positions off-screen
-        cooldownTicks={0} // Stop the engine after rendering stabilized
+        // Removed linkCurvature for strictly straight edges
+        d3VelocityDecay={0.3} // Restored smooth zoom/camera drag mechanics
+        warmupTicks={100} // Pre-calculate stable space positions
       />
     </div>
   );
