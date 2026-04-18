@@ -29,16 +29,12 @@ export async function fetchRepo(repoUrl) {
   const repoOwner = urlParts[urlParts.length - 2];
   const fullName = `${repoOwner}/${repoName}`;
   
-  const clonePath = path.join(TEMP_DIR, `${repoOwner}_${repoName}`);
+  const uniqueId = Date.now();
+  const clonePath = path.join(TEMP_DIR, `${repoOwner}_${repoName}_${uniqueId}`);
   
   // Ensure temp directory exists
   if (!fs.existsSync(TEMP_DIR)) {
     fs.mkdirSync(TEMP_DIR, { recursive: true });
-  }
-  
-  // Remove if already exists
-  if (fs.existsSync(clonePath)) {
-    fs.rmSync(clonePath, { recursive: true, force: true });
   }
   
   console.log(`📦 Cloning ${fullName} into ${clonePath}...`);
