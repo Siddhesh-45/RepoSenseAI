@@ -1,6 +1,6 @@
 ﻿<div align="center">
 
-# **⬡ RepoSence AI**
+# **⬡ RepoSense AI**
 ### **Understand Any Codebase. In Under 2 Minutes.**
 
 > Transform any GitHub repository into an interactive AI-powered architecture map —
