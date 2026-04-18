@@ -5,9 +5,20 @@ import path from 'path';
 let openai = null;
 const summaryCache = new Map(); // Simple in-memory cache
 
+const MAX_SNIPPET_CHARS = 3000; // Character limit for code sent to OpenAI
+
 function getClient() {
-  if (!openai && process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'your_openai_api_key_here') {
-    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey || apiKey === 'your_openai_api_key_here' || apiKey.length < 20) {
+      console.error('❌ OPENAI_API_KEY is missing or invalid.');
+      console.error('   Current value:', apiKey ? `${apiKey.slice(0, 8)}...${apiKey.slice(-4)}` : '(empty)');
+      return null;
+    }
+
+    openai = new OpenAI({ apiKey });
+    console.log('✅ OpenAI client initialized');
   }
   return openai;
 }
@@ -20,7 +31,7 @@ export async function generateSummaries(deps, clonePath, classifications, scores
   const client = getClient();
   const allFiles = Object.keys(deps);
   const summaries = {};
-  
+
   if (!client) {
     console.log('⚠️ OpenAI API key not set — using smart fallback summaries');
     for (const file of allFiles) {
@@ -28,107 +39,159 @@ export async function generateSummaries(deps, clonePath, classifications, scores
     }
     return summaries;
   }
-  
+
   // Sort files by impact to only take the top 30 most important files
   const sortedFiles = [...allFiles].sort((a, b) => {
     const scoreA = scores[a]?.impact || 0;
     const scoreB = scores[b]?.impact || 0;
     return scoreB - scoreA;
   });
-  
+
   const filesToSummarize = sortedFiles.slice(0, 30);
-  
+
   // Immediately flag files outside the top 30
   for (const file of allFiles) {
     if (!filesToSummarize.includes(file)) {
-      summaries[file] = "Summary not available (not prioritized)";
+      summaries[file] = generateFallbackSummary(file, deps[file], classifications[file]);
     }
   }
 
   console.log(`🤖 Generating AI summaries for top ${filesToSummarize.length} files...`);
-  
+
   // Process in batches of 5
   for (let i = 0; i < filesToSummarize.length; i += 5) {
     const batch = filesToSummarize.slice(i, i + 5);
-    const batchPromises = batch.map(file => summarizeFile(client, file, deps[file], clonePath));
-    
+    const batchPromises = batch.map(file => summarizeFile(client, file, deps[file], clonePath, classifications[file]));
+
     const results = await Promise.allSettled(batchPromises);
-    
+
     results.forEach((result, idx) => {
       const file = batch[idx];
-      if (result.status === 'fulfilled') {
+      if (result.status === 'fulfilled' && result.value) {
         summaries[file] = result.value;
       } else {
-        console.error(`⚠️ OpenAI API Error on ${file}:`, result.reason?.message || result.reason);
-        summaries[file] = "Summary not available";
+        const errorMsg = result.status === 'rejected'
+          ? result.reason?.message || String(result.reason)
+          : 'Empty response';
+        console.error(`⚠️ Summary failed for ${file}: ${errorMsg}`);
+        // Use intelligent fallback instead of "Summary not available"
+        summaries[file] = generateFallbackSummary(file, deps[file], classifications[file]);
       }
     });
-    
+
     console.log(`  📝 Batch ${Math.floor(i / 5) + 1}/${Math.ceil(filesToSummarize.length / 5)} complete`);
-    
-    // Small delay between batches
+
+    // Small delay between batches to respect rate limits
     if (i + 5 < filesToSummarize.length) {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
-  
+
   return summaries;
 }
 
 /**
  * Summarize a single file using OpenAI
  */
-async function summarizeFile(client, filename, deps, clonePath) {
-  let content = '';
+async function summarizeFile(client, filename, deps, clonePath, fileType) {
   let snippet = '';
-  
+
   try {
     const filePath = path.join(clonePath, filename);
     if (fs.existsSync(filePath)) {
-      content = fs.readFileSync(filePath, 'utf-8');
-      
-      // Check if file is huge (> 1000 lines) and skip it
-      const lines = content.split('\n');
-      if (lines.length > 1000) {
-         console.log(`⏭️  Skipping large file ${filename} (${lines.length} lines)`);
-         return "Summary not available (File too large)";
+      const content = fs.readFileSync(filePath, 'utf-8');
+
+      // Skip truly huge files
+      const lineCount = content.split('\n').length;
+      if (lineCount > 1000) {
+        console.log(`⏭️  Skipping large file ${filename} (${lineCount} lines) — using fallback`);
+        return generateFallbackSummary(filename, deps, fileType);
       }
-      
-      snippet = lines.slice(0, 100).join('\n'); // Give ChatGPT a decent chunk
+
+      // Truncate to MAX_SNIPPET_CHARS for the API call
+      snippet = content.length > MAX_SNIPPET_CHARS
+        ? content.slice(0, MAX_SNIPPET_CHARS) + '\n// ... (truncated)'
+        : content;
     }
-  } catch {
-    snippet = '(unable to read)';
+  } catch (err) {
+    console.warn(`⚠️ Could not read file ${filename}: ${err.message}`);
+    snippet = '(unable to read file contents)';
   }
-  
-  // Check memory cache based on filename + snippet length
+
+  if (!snippet || snippet.trim().length === 0) {
+    return 'Empty file — no code to analyze.';
+  }
+
+  // Check memory cache
   const cacheKey = `${filename}-${snippet.length}`;
   if (summaryCache.has(cacheKey)) {
     return summaryCache.get(cacheKey);
   }
-  
-  const response = await client.chat.completions.create({
-    model: 'gpt-3.5-turbo',
-    messages: [{
-      role: 'user',
-      content: `Explain the purpose of this code file in simple terms.
-Describe what it does, its role in the application, and key responsibilities.
+
+  console.log(`  🔍 Summarizing: ${filename}`);
+
+  try {
+    const response = await client.chat.completions.create({
+      model: 'gpt-4.1-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a senior software engineer reviewing a codebase. Explain code clearly and concisely. Highlight responsibilities and the file\'s role in the system architecture.'
+        },
+        {
+          role: 'user',
+          content: `Explain this code file in simple terms.
 
 File Name: ${filename}
+Dependencies: ${deps?.length ? deps.join(', ') : 'None (standalone)'}
+
 Code:
 ${snippet}
 
-Keep the explanation short, clear, and beginner-friendly.`
-    }],
-    max_tokens: 150,
-    temperature: 0.3
-  });
-  
-  const result = response.choices[0].message.content.trim();
-  
-  // Save to cache before returning
-  summaryCache.set(cacheKey, result);
-  
-  return result;
+Give:
+- What this file does (1 sentence)
+- Its role in the project architecture (1 sentence)
+- Key responsibility (1 sentence)
+
+Keep it under 3 lines total. Be specific, not generic.`
+        }
+      ],
+      max_tokens: 200,
+      temperature: 0.3
+    });
+
+    const result = response.choices?.[0]?.message?.content?.trim();
+
+    if (!result) {
+      console.warn(`⚠️ Empty AI response for ${filename}`);
+      return generateFallbackSummary(filename, deps, fileType);
+    }
+
+    // Cache the result
+    summaryCache.set(cacheKey, result);
+    return result;
+
+  } catch (apiError) {
+    // Detailed error logging to help diagnose issues
+    console.error(`❌ OpenAI API error for ${filename}:`);
+    console.error(`   Status: ${apiError.status || 'N/A'}`);
+    console.error(`   Message: ${apiError.message}`);
+    console.error(`   Type: ${apiError.type || apiError.code || 'unknown'}`);
+
+    // If the key is invalid/revoked, stop trying for remaining files
+    if (apiError.status === 401 || apiError.code === 'invalid_api_key') {
+      console.error('🚨 API KEY IS INVALID OR REVOKED. Generate a new key at https://platform.openai.com/api-keys');
+      throw new Error('OpenAI API key is invalid. Please generate a new key.');
+    }
+
+    // If model not found, log it clearly
+    if (apiError.status === 404 || apiError.message?.includes('model')) {
+      console.error('🚨 Model "gpt-4.1-mini" not available. Check your OpenAI plan.');
+      throw new Error('Model not available. Check OpenAI plan access.');
+    }
+
+    return generateFallbackSummary(filename, deps, fileType);
+  }
 }
 
 /**
@@ -136,23 +199,24 @@ Keep the explanation short, clear, and beginner-friendly.`
  */
 function generateFallbackSummary(filename, deps, type) {
   const basename = filename.split('/').pop().replace(/\.\w+$/, '');
-  const depCount = deps.length;
-  
+  const depCount = Array.isArray(deps) ? deps.length : 0;
+
   const typeDescriptions = {
     entry: `System Entrypoint:`,
     core: `Core Architecture:`,
     util: `Utility Collection:`,
     config: `Configuration Setup:`
   };
-  
+
   let summary = `${typeDescriptions[type] || 'Module:'} This file specifically manages the '${basename}' functionality within the system.`;
-  
+
   if (depCount > 0) {
-    summary += ` It orchestrates logic by interacting with ${depCount} other component${depCount > 1 ? 's' : ''} (e.g., ${deps.slice(0, 2).map(d => d.split('/').pop()).join(', ')}).`;
+    const depNames = deps.slice(0, 2).map(d => d.split('/').pop());
+    summary += ` It orchestrates logic by interacting with ${depCount} other component${depCount > 1 ? 's' : ''} (e.g., ${depNames.join(', ')}).`;
   } else {
     summary += ` This is a standalone leaf module that executes independently.`;
   }
-  
+
   // Add context based on filename
   if (basename.toLowerCase().includes('route')) {
     summary += ` It acts as a routing controller for endpoints.`;
@@ -167,6 +231,6 @@ function generateFallbackSummary(filename, deps, type) {
   } else if (basename.toLowerCase().includes('app') || basename.toLowerCase().includes('main')) {
     summary += ` It is an essential root-level orchestrator.`;
   }
-  
+
   return summary;
 }
