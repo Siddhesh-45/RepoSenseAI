@@ -99,19 +99,55 @@ export default function Home() {
   const navigate = useNavigate();
   const inputRef = useRef(null);
 
-  function handleAnalyze(e) {
+  const [mode, setMode] = useState('url'); // 'url', 'username', 'zip'
+  const [usernameResults, setUsernameResults] = useState([]);
+  const [loadingUser, setLoadingUser] = useState(false);
+  const fileInputRef = useRef(null);
+
+  async function handleAnalyze(e) {
     e && e.preventDefault();
-    if (!url.trim()) return;
-    navigate('/analyze', { state: { repoUrl: url.trim() } });
+    if (mode === 'url') {
+      if (!url.trim()) return;
+      navigate('/analyze', { state: { repoUrl: url.trim() } });
+    } else if (mode === 'username') {
+      if (!url.trim()) return;
+      setLoadingUser(true);
+      try {
+        const res = await fetch(`/api/repos/${url.trim()}`);
+        const data = await res.json();
+        setUsernameResults(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingUser(false);
+      }
+    }
+  }
+
+  function handleZipUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Create a temporary object URL to represent the upload payload state, or navigate passing the file
+    // Note: React Router state can't easily proxy non-serializable File objects across pages cleanly.
+    // Instead of passing the File object to Analyzer, we send the File directly to the backend here,
+    // and wait for the response, then pass the graph data to Analyzer (or re-architect Analyzer to accept File).
+    // Given the current architecture, Analyzer.jsx triggers the fetch. 
+    // We should navigate to Analyzer with a special flag: { isZip: true, file: file }
+    navigate('/analyze', { state: { isZip: true, file: file } });
   }
 
   function handleSample(repo) {
     setUrl(`https://github.com/${repo}`);
-    navigate('/analyze', { state: { repoUrl: `https://github.com/${repo}` } });
+    setMode('url');
+    // Allow a tick for state to settle, then navigate
+    setTimeout(() => {
+      navigate('/analyze', { state: { repoUrl: `https://github.com/${repo}` } });
+    }, 10);
   }
 
   /* focus on mount */
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => { if (mode !== 'zip') inputRef.current?.focus(); }, [mode]);
 
   return (
     <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', position: 'relative' }}>
@@ -177,6 +213,18 @@ export default function Home() {
           and guided onboarding paths — generated in seconds.
         </motion.p>
 
+        {/* ── Input Mode Selector ── */}
+        <motion.div
+           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+           style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}
+        >
+          {['url', 'username', 'zip'].map(m => (
+            <button key={m} onClick={() => setMode(m)} className={`chip ${mode === m ? 'active' : ''}`} style={{ background: mode === m ? 'var(--green-border)' : 'transparent', color: mode === m ? '#000' : 'var(--text-secondary)' }}>
+               {m === 'url' ? '🔗 URL' : m === 'username' ? '👤 Username' : '📦 Upload ZIP'}
+            </button>
+          ))}
+        </motion.div>
+
         {/* ── URL Input ── */}
         <motion.form
           onSubmit={handleAnalyze}
@@ -192,25 +240,50 @@ export default function Home() {
             transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)',
           }}
         >
-          <input
-            ref={inputRef}
-            type="text"
-            value={url}
-            onChange={e => setUrl(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            placeholder="https://github.com/username/repository"
-            className="font-mono"
-            style={{
-              flex: 1, background: 'transparent', border: 'none', outline: 'none',
-              color: 'var(--text-primary)', padding: '1rem 1.25rem', fontSize: '0.9375rem',
-            }}
-          />
-          <button type="submit" className="btn-primary"
-            style={{ padding: '1rem 1.75rem', fontSize: '0.9375rem', borderRadius: 0 }}>
-            Analyze →
-          </button>
+          {mode === 'zip' ? (
+             <div style={{ flex: 1, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
+               <input type="file" ref={fileInputRef} accept=".zip" onChange={handleZipUpload} style={{ width: '100%' }} />
+             </div>
+          ) : (
+             <input
+               ref={inputRef}
+               type="text"
+               value={url}
+               onChange={e => setUrl(e.target.value)}
+               onFocus={() => setFocused(true)}
+               onBlur={() => setFocused(false)}
+               placeholder={mode === 'url' ? "https://github.com/username/repository" : "Enter GitHub username..."}
+               className="font-mono"
+               style={{
+                 flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                 color: 'var(--text-primary)', padding: '1rem 1.25rem', fontSize: '0.9375rem',
+               }}
+             />
+          )}
+
+          {mode !== 'zip' && (
+             <button type="submit" className="btn-primary" style={{ padding: '1rem 1.75rem', fontSize: '0.9375rem', borderRadius: 0 }}>
+               {mode === 'username' ? (loadingUser ? 'Searching...' : 'Search →') : 'Analyze →'}
+             </button>
+          )}
         </motion.form>
+
+        {/* Username Results Dropdown/List */}
+        {mode === 'username' && usernameResults.length > 0 && (
+           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ width: '100%', maxWidth: '680px', marginTop: '1rem', maxHeight: '200px', overflowY: 'auto', background: 'var(--bg-nested)', borderRadius: '0.375rem', border: '1px solid var(--border-color)', padding: '0.5rem' }}>
+              {usernameResults.map(repo => (
+                 <div key={repo.fullName} 
+                      onClick={() => navigate('/analyze', { state: { repoUrl: repo.url } })}
+                      style={{ padding: '0.75rem', cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                 >
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{repo.name}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{repo.description || "No description"}</div>
+                 </div>
+              ))}
+           </motion.div>
+        )}
 
         {/* ── Sample Repos ── */}
         <motion.div

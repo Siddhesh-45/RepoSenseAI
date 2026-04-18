@@ -1,5 +1,17 @@
 /**
- * Assemble final graph JSON response from all processed data
+ * Purpose:
+ * Builds the dependency graph structure from analyzed files.
+ *
+ * Role in System:
+ * Acts as a core module connecting dependency analysis with graph visualization.
+ *
+ * Key Responsibility:
+ * Transforms raw dependency data into nodes and edges.
+ *
+ * Important Insight:
+ * Used by the analyze route, making it a central orchestration component.
+ * This file depends on 0 modules and is used by 1 files.
+ * It likely handles graph construction and dependency resolution.
  */
 export function buildGraph(deps, classifications, scores, summaries, onboardingPath) {
   const allFiles = Object.keys(deps);

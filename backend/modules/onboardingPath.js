@@ -1,7 +1,25 @@
 /**
- * BFS traversal from entry-type nodes to build an onboarding path
- * Traverses dependency edges layer by layer
- * Returns ordered array of file IDs
+ * Purpose:
+ * Generates a recommended file-reading sequence for developers onboarding
+ * onto a new codebase by performing a BFS traversal of the dependency graph.
+ *
+ * Role in System:
+ * Acts as the UX-guidance layer of the analysis pipeline, turning graph
+ * topology into an actionable learning path. Its ordered array is embedded
+ * directly into the final graph JSON and drives the OnboardingPath frontend
+ * component's step-through navigation.
+ *
+ * Key Responsibility:
+ * Starts from entry-point nodes (or the most-connected file if no entry
+ * points exist) and fans out layer by layer through the dependency tree
+ * using BFS. Unvisited files are appended at the end so every file in
+ * the repository is always represented in the path.
+ *
+ * Important Insight:
+ * Used by the analyze route as Step 6 of the 8-step pipeline, just before
+ * final graph assembly. This file depends on 0 modules (pure JS) and is used
+ * by 1 file (routes/analyze.js). It likely handles graph traversal, new-hire
+ * documentation ordering, and dependency-aware sequencing.
  */
 export function buildOnboardingPath(deps, classifications) {
   // Find all entry-type nodes

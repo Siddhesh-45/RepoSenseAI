@@ -253,3 +253,19 @@ body {
   stroke: var(--accent-end) !important;
   stroke-width: 2 !important;
 }
+
+/* ===== ACTIVITY SIDEBAR ===== */
+.file-tree-item {
+  transition: background 0.15s;
+}
+.file-tree-item:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.commit-item {
+  transition: background 0.15s;
+}
+.commit-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+

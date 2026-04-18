@@ -1,3 +1,28 @@
+/**
+ * Purpose:
+ * Generates concise, context-aware AI descriptions for every file in the
+ * dependency graph using OpenAI's GPT-4.1-mini model.
+ *
+ * Role in System:
+ * Acts as the intelligence layer of the analysis pipeline — the only module
+ * that makes external API calls. Its output (the summaries map) is the primary
+ * human-readable content displayed in node tooltips and the FileDetailPanel
+ * sidebar on the frontend.
+ *
+ * Key Responsibility:
+ * Prioritizes the top 30 files by impact score, reads their source code,
+ * truncates content to 3000 characters, and dispatches batches of 5 concurrent
+ * OpenAI requests. Falls back to a deterministic rule-based summary generator
+ * for all files outside the top 30, files exceeding 1000 lines, or when the
+ * API key is absent/invalid.
+ *
+ * Important Insight:
+ * Used by the analyze route as Step 5 of the 8-step pipeline — the most
+ * time-consuming step due to external API latency. This file depends on 3
+ * modules (openai, fs, path) and is used by 1 file (routes/analyze.js).
+ * It likely handles rate-limit batching, in-memory caching, large-file
+ * exclusion, and graceful API error recovery.
+ */
 import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
@@ -132,7 +157,7 @@ async function summarizeFile(client, filename, deps, clonePath, fileType) {
 
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-4.1-mini',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
