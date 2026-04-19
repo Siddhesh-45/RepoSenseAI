@@ -2,6 +2,7 @@ import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { prepareGraphData } from './graphHelpers';
 import { analyzeSemantic } from '../../services/api';
+import SpaceBackground from './SpaceBackground';
 
 export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, searchHighlights = [], traversalState = null }) {
   const fgRef = useRef();
@@ -45,6 +46,24 @@ export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, s
          .then(res => {
             if (isMounted) setHudData(res);
          })
+         .catch(err => {
+            console.error("Semantic analysis failed:", err);
+            if (isMounted) {
+               // Fallback gracefully on API limit or 413 Payload Too Large
+               const node = graphData.nodes.find(n => n.id === traversalState.currentNodeId);
+               setHudData({
+                  modulePurpose: node?.ai || 'Analysis failed due to API constraints. ' + (err.response?.data?.error || err.message),
+                  exportedInterface: ['N/A'],
+                  dependencies: [],
+                  dependents: [],
+                  dataFlow: 'Could not fetch data flow context.',
+                  algorithms: 'N/A',
+                  designPatterns: [],
+                  architecturalLayer: node?.type || 'Unknown',
+                  stateContracts: 'N/A'
+               });
+            }
+         })
          .finally(() => {
             if (isMounted) setIsHudLoading(false);
          });
@@ -77,7 +96,8 @@ export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, s
   }, [onNodeSelect]);
 
   const paintNode = useCallback((node, ctx, globalScale) => {
-    const label = node.label || node.id || '?';
+    // Ensure we only print the short filename, not the full massive path string
+    const label = node.label || (node.id ? node.id.split('/').pop() : '?');
     const isSelected = node.id === selectedNodeId;
     const isHighlighted = searchHighlights.length > 0 && searchHighlights.includes(node.id);
     let isFaded = searchHighlights.length > 0 && !isHighlighted;
@@ -97,9 +117,9 @@ export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, s
        }
     }
     
-    // Safe fallbacks for dynamically created ghost nodes from edges
-    const safeVal = node.val || 2;
-    const baseSize = safeVal * 2.5;
+    // Scale nodes based on their incoming edges with a hard visual cap of 10
+    const cappedImpact = Math.min(node.incomingEdges || node.impact || 0, 10);
+    const baseSize = (cappedImpact * 2.5) + 8; // Significantly larger to distinguish from background
     let size = baseSize;
     if (isCurrent) size = baseSize * 1.8;
     else if (isPending) size = baseSize * 1.2;
@@ -160,22 +180,25 @@ export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, s
 
     // Draw text (centered below planet)
     if (!isFaded || isRoot) {
-       const fontSize = (isSelected || isCurrent) ? 14 / globalScale : 10 / globalScale;
+       // Bumping the font size so names are clearly legible immediately on load
+       const fontSize = (isSelected || isCurrent) ? 18 / globalScale : 14 / globalScale;
        ctx.font = `${isCurrent ? 'bold' : 'normal'} ${fontSize}px Inter, monospace`;
        ctx.textAlign = 'center';
        ctx.textBaseline = 'middle';
-       ctx.fillStyle = isCurrent ? '#ffffff' : (isSelected ? '#ffffff' : (isVisited ? '#86efac' : '#adaaaa'));
-       ctx.fillText(label, node.x, node.y + size + (8 / globalScale));
+       
+       // Brightening the default label color so it pops off the dark background initially
+       ctx.fillStyle = isCurrent ? '#ffffff' : (isSelected ? '#ffffff' : (isVisited ? '#86efac' : '#e2e8f0'));
+       ctx.fillText(label, node.x, node.y + size + (12 / globalScale));
     }
   }, [selectedNodeId, searchHighlights, traversalState]);
 
   // Edges Encodings
   const getLinkColor = useCallback((link) => {
-     if (!traversalState) return 'rgba(255,255,255,0.03)';
+     if (!traversalState) return 'rgba(255,255,255,0.15)';
      const isTraversalActive = traversalState.traversalStep > 0 || traversalState.stack.length > 0;
      if (!isTraversalActive) {
          const isSelected = selectedNodeId && (link.source.id === selectedNodeId || link.target.id === selectedNodeId);
-         return isSelected ? '#0dff47' : 'rgba(255,255,255,0.03)';
+         return isSelected ? '#0dff47' : 'rgba(255,255,255,0.15)';
      }
 
      const linkKeyFwd = `${link.source.id}|${link.target.id}`;
@@ -228,8 +251,11 @@ export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, s
 
   // Main UI Render
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', background: 'var(--bg-primary)', position: 'relative' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
       
+      {/* ── Space Background (Lowest z-index) ── */}
+      <SpaceBackground />
+
       {/* ── Overlay Controls (Top-Left) ── */}
       {traversalState && (
          <div style={{
@@ -270,23 +296,26 @@ export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, s
             {traversalState.traversalStep === 0 && traversalState.stack.length === 0 ? (
                <button 
                   onClick={() => traversalState.start(selectedRootId)}
-                  style={{ background: '#22c55e', color: '#000', border: 'none', padding: '6px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem' }}
+                  className="font-sans"
+                  style={{ background: 'var(--accent-end)', color: '#000', border: '1px solid rgba(255,255,255,0.2)', padding: '6px 16px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '0.75rem', boxShadow: '0 0 10px rgba(14, 165, 233, 0.4)', transition: 'all 0.2s' }}
                >
                   SEED ROOT
                </button>
             ) : (
                <>
                   <button 
-                     onClick={() => traversalState.togglePlay(1200)}
+                     onClick={() => traversalState.togglePlay(5000)}
+                     className="font-sans"
                      disabled={traversalState.stack.length === 0}
-                     style={{ background: traversalState.isPlaying ? 'rgba(255,255,255,0.1)' : '#f59e0b', color: traversalState.isPlaying ? '#fff' : '#000', border: 'none', padding: '6px 16px', borderRadius: '6px', fontWeight: 'bold', cursor: traversalState.stack.length === 0 ? 'not-allowed' : 'pointer', fontSize: '0.85rem' }}
+                     style={{ background: traversalState.isPlaying ? 'rgba(255,255,255,0.1)' : 'var(--accent-end)', color: traversalState.isPlaying ? '#fff' : '#000', border: 'none', padding: '6px 16px', borderRadius: '6px', fontWeight: 600, cursor: traversalState.stack.length === 0 ? 'not-allowed' : 'pointer', fontSize: '0.75rem' }}
                   >
                      {traversalState.isPlaying ? '⏸ PAUSE' : '▶ AUTO-PLAY'}
                   </button>
                   <button 
                      onClick={traversalState.step}
+                     className="font-sans"
                      disabled={traversalState.isPlaying || traversalState.stack.length === 0}
-                     style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: '6px', cursor: (traversalState.isPlaying || traversalState.stack.length === 0) ? 'not-allowed' : 'pointer', fontSize: '0.85rem' }}
+                     style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: '6px', fontWeight: 600, cursor: (traversalState.isPlaying || traversalState.stack.length === 0) ? 'not-allowed' : 'pointer', fontSize: '0.75rem' }}
                   >
                      STEP →
                   </button>
@@ -400,7 +429,7 @@ export default function GraphCanvas({ graphData, selectedNodeId, onNodeSelect, s
         nodeLabel="fullPath"
         nodeCanvasObject={paintNode}
         onNodeClick={handleNodeClick}
-        backgroundColor="#050505"
+        backgroundColor="rgba(0,0,0,0)"
         linkColor={getLinkColor}
         linkWidth={getLinkWidth}
         linkDirectionalParticles={getLinkParticles}

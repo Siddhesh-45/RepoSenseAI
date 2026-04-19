@@ -1,16 +1,16 @@
 import fs from 'fs';
 import path from 'path';
-import OpenAI from 'openai';
+import { GoogleGenAI } from '@google/genai';
 
-let openai = null;
+let ai = null;
 
 function getClient() {
-  if (!openai) {
-    const apiKey = process.env.OPENAI_API_KEY;
+  if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.length < 20) return null;
-    openai = new OpenAI({ apiKey });
+    ai = new GoogleGenAI({ apiKey });
   }
-  return openai;
+  return ai;
 }
 
 /**
@@ -107,15 +107,17 @@ ${topFiles}
 `;
 
   try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      response_format: { type: "json_object" },
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1500,
-      temperature: 0.3
+    const response = await client.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        maxOutputTokens: 1500,
+        temperature: 0.3
+      }
     });
 
-    const parsed = JSON.parse(response.choices[0].message.content);
+    const parsed = JSON.parse(response.text);
     return parsed;
   } catch (err) {
     console.error('❌ Repo summarizer error:', err.message);

@@ -1,13 +1,13 @@
-import OpenAI from 'openai';
+import { GoogleGenAI } from '@google/genai';
 
-let openai = null;
+let ai = null;
 function getClient() {
-  if (!openai) {
-    const apiKey = process.env.OPENAI_API_KEY;
+  if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return null;
-    openai = new OpenAI({ apiKey });
+    ai = new GoogleGenAI({ apiKey });
   }
-  return openai;
+  return ai;
 }
 
 export async function generateSemanticAnalysis(nodeId, nodes, edges) {
@@ -62,16 +62,16 @@ Required JSON schema:
   }
 
   try {
-     const response = await client.chat.completions.create({
-         model: 'gpt-4o-mini',
-         temperature: 0.1,
-         response_format: { type: "json_object" },
-         messages: [
-             { role: 'system', content: systemPrompt },
-             { role: 'user', content: context }
-         ]
+     const response = await client.models.generateContent({
+         model: 'gemini-2.5-flash',
+         contents: context,
+         config: {
+             systemInstruction: systemPrompt,
+             temperature: 0.1,
+             responseMimeType: 'application/json'
+         }
      });
-     return JSON.parse(response.choices[0].message.content);
+     return JSON.parse(response.text);
   } catch (err) {
       console.error("Semantic analysis failed:", err.message);
       return {

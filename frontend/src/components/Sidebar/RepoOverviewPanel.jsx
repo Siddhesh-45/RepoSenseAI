@@ -42,8 +42,8 @@ export default function RepoOverviewPanel({ repoSummary }) {
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
           </div>
-          <p className="font-mono" style={{ color: 'var(--accent-end)', fontSize: '0.625rem', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-end)', display: 'inline-block', boxShadow: '0 0 8px var(--accent-end)' }}></span>
+          <p className="font-sans" style={{ color: 'var(--text-primary)', fontSize: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '2px', background: 'var(--accent-end)', display: 'inline-block', boxShadow: '0 0 8px var(--accent-end)' }}></span>
             AI Synthesis
           </p>
           <p style={{ color: 'var(--text-primary)', fontSize: '0.875rem', lineHeight: 1.6, textShadow: '0 2px 4px rgba(0,0,0,0.5)', opacity: 0.9 }}>
@@ -70,7 +70,7 @@ function InfoBlock({ title, content, delay }) {
   if (!content || typeof content !== 'string') return null;
   return (
     <motion.div variants={itemVariants}>
-      <p className="font-mono" style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', marginBottom: '0.375rem', letterSpacing: '0.05em' }}>
+      <p className="font-sans" style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.7rem', marginBottom: '0.375rem', letterSpacing: '0.05em' }}>
         {title.toUpperCase()}
       </p>
       <div style={{ 

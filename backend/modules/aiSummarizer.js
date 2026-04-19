@@ -23,29 +23,28 @@
  * It likely handles rate-limit batching, in-memory caching, large-file
  * exclusion, and graceful API error recovery.
  */
-import OpenAI from 'openai';
+import { GoogleGenAI } from '@google/genai';
 import fs from 'fs';
 import path from 'path';
 
-let openai = null;
+let ai = null;
 const summaryCache = new Map(); // Simple in-memory cache
 
-const MAX_SNIPPET_CHARS = 3000; // Character limit for code sent to OpenAI
+const MAX_SNIPPET_CHARS = 3000; // Character limit for code sent to Gemini
 
 function getClient() {
-  if (!openai) {
-    const apiKey = process.env.OPENAI_API_KEY;
+  if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!apiKey || apiKey === 'your_openai_api_key_here' || apiKey.length < 20) {
-      console.error('❌ OPENAI_API_KEY is missing or invalid.');
-      console.error('   Current value:', apiKey ? `${apiKey.slice(0, 8)}...${apiKey.slice(-4)}` : '(empty)');
+    if (!apiKey || apiKey === 'your_gemini_api_key_here' || apiKey.length < 20) {
+      console.error('❌ GEMINI_API_KEY is missing or invalid.');
       return null;
     }
 
-    openai = new OpenAI({ apiKey });
-    console.log('✅ OpenAI client initialized');
+    ai = new GoogleGenAI({ apiKey });
+    console.log('✅ Gemini client initialized');
   }
-  return openai;
+  return ai;
 }
 
 /**
@@ -65,159 +64,100 @@ export async function generateSummaries(deps, clonePath, classifications, scores
     return summaries;
   }
 
-  // Sort files by impact to only take the top 30 most important files
+  // Sort files by impact to only take the top 15 most important files
   const sortedFiles = [...allFiles].sort((a, b) => {
     const scoreA = scores[a]?.impact || 0;
     const scoreB = scores[b]?.impact || 0;
     return scoreB - scoreA;
   });
 
-  const filesToSummarize = sortedFiles.slice(0, 30);
+  const filesToSummarize = sortedFiles.slice(0, 15);
 
-  // Immediately flag files outside the top 30
+  // Immediately flag files outside the top 15
   for (const file of allFiles) {
     if (!filesToSummarize.includes(file)) {
       summaries[file] = generateFallbackSummary(file, deps[file], classifications[file]);
     }
   }
 
-  console.log(`🤖 Generating AI summaries for top ${filesToSummarize.length} files...`);
+  console.log(`🤖 Generating AI summaries for top ${filesToSummarize.length} files in ONE batch...`);
 
-  // Process in batches of 5
-  for (let i = 0; i < filesToSummarize.length; i += 5) {
-    const batch = filesToSummarize.slice(i, i + 5);
-    const batchPromises = batch.map(file => summarizeFile(client, file, deps[file], clonePath, classifications[file]));
-
-    const results = await Promise.allSettled(batchPromises);
-
-    results.forEach((result, idx) => {
-      const file = batch[idx];
-      if (result.status === 'fulfilled' && result.value) {
-        summaries[file] = result.value;
-      } else {
-        const errorMsg = result.status === 'rejected'
-          ? result.reason?.message || String(result.reason)
-          : 'Empty response';
-        console.error(`⚠️ Summary failed for ${file}: ${errorMsg}`);
-        // Use intelligent fallback instead of "Summary not available"
-        summaries[file] = generateFallbackSummary(file, deps[file], classifications[file]);
+  const fileDataForPrompt = [];
+  
+  for (const filename of filesToSummarize) {
+    let snippet = '';
+    const filePath = path.join(clonePath, filename);
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const lineCount = content.split('\n').length;
+      if (lineCount > 1000) {
+        summaries[filename] = generateFallbackSummary(filename, deps[filename], classifications[filename]);
+        continue;
       }
-    });
+      snippet = content.length > MAX_SNIPPET_CHARS
+        ? content.slice(0, MAX_SNIPPET_CHARS) + '\n// ... (truncated)'
+        : content;
+        
+      if (snippet.trim()) {
+         fileDataForPrompt.push({ filename, deps: deps[filename], snippet });
+      } else {
+         summaries[filename] = generateFallbackSummary(filename, deps[filename], classifications[filename]);
+      }
+    } else {
+      summaries[filename] = 'Empty file — no code to analyze.';
+    }
+  }
 
-    console.log(`  📝 Batch ${Math.floor(i / 5) + 1}/${Math.ceil(filesToSummarize.length / 5)} complete`);
+  if (fileDataForPrompt.length > 0) {
+    const promptText = `Summarize the following code files. For each file, provide a 3-line summary containing: What it does (1 sentence), Its role in the architecture (1 sentence), Key responsibility (1 sentence).
 
-    // Small delay between batches to respect rate limits
-    if (i + 5 < filesToSummarize.length) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+Format your response EXACTLY as a raw JSON object string where keys are filenames and values are the summaries. DO NOT include markdown formatting like \`\`\`json.
+Example:
+{
+  "file1.js": "Summary 1...",
+  "file2.js": "Summary 2..."
+}
+
+Files to summarize:
+${fileDataForPrompt.map(f => `--- File: ${f.filename} ---\nDependencies: ${f.deps?.length ? f.deps.join(', ') : 'None'}\nCode:\n${f.snippet}`).join('\n\n')}
+`;
+
+    try {
+      const response = await client.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: promptText,
+        config: {
+          systemInstruction: 'You are a senior software engineer reviewing a codebase. Output raw JSON object mapping filenames to their summaries.',
+          maxOutputTokens: 2000,
+          temperature: 0.3,
+          responseMimeType: 'application/json'
+        }
+      });
+      
+      const resultObj = JSON.parse(response.text);
+      for (const [filename, summary] of Object.entries(resultObj)) {
+         if (filesToSummarize.includes(filename)) {
+            summaries[filename] = summary;
+         }
+      }
+      
+      // Fallback for any that were missed by the AI
+      for (const f of fileDataForPrompt) {
+         if (!summaries[f.filename]) {
+             summaries[f.filename] = generateFallbackSummary(f.filename, f.deps, classifications[f.filename]);
+         }
+      }
+    } catch (err) {
+      console.error(`❌ Gemini Batch API error:`, err.message);
+      for (const f of fileDataForPrompt) {
+        summaries[f.filename] = generateFallbackSummary(f.filename, f.deps, classifications[f.filename]);
+      }
     }
   }
 
   return summaries;
 }
 
-/**
- * Summarize a single file using OpenAI
- */
-async function summarizeFile(client, filename, deps, clonePath, fileType) {
-  let snippet = '';
-
-  try {
-    const filePath = path.join(clonePath, filename);
-    if (fs.existsSync(filePath)) {
-      const content = fs.readFileSync(filePath, 'utf-8');
-
-      // Skip truly huge files
-      const lineCount = content.split('\n').length;
-      if (lineCount > 1000) {
-        console.log(`⏭️  Skipping large file ${filename} (${lineCount} lines) — using fallback`);
-        return generateFallbackSummary(filename, deps, fileType);
-      }
-
-      // Truncate to MAX_SNIPPET_CHARS for the API call
-      snippet = content.length > MAX_SNIPPET_CHARS
-        ? content.slice(0, MAX_SNIPPET_CHARS) + '\n// ... (truncated)'
-        : content;
-    }
-  } catch (err) {
-    console.warn(`⚠️ Could not read file ${filename}: ${err.message}`);
-    snippet = '(unable to read file contents)';
-  }
-
-  if (!snippet || snippet.trim().length === 0) {
-    return 'Empty file — no code to analyze.';
-  }
-
-  // Check memory cache
-  const cacheKey = `${filename}-${snippet.length}`;
-  if (summaryCache.has(cacheKey)) {
-    return summaryCache.get(cacheKey);
-  }
-
-  console.log(`  🔍 Summarizing: ${filename}`);
-
-  try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a senior software engineer reviewing a codebase. Explain code clearly and concisely. Highlight responsibilities and the file\'s role in the system architecture.'
-        },
-        {
-          role: 'user',
-          content: `Explain this code file in simple terms.
-
-File Name: ${filename}
-Dependencies: ${deps?.length ? deps.join(', ') : 'None (standalone)'}
-
-Code:
-${snippet}
-
-Give:
-- What this file does (1 sentence)
-- Its role in the project architecture (1 sentence)
-- Key responsibility (1 sentence)
-
-Keep it under 3 lines total. Be specific, not generic.`
-        }
-      ],
-      max_tokens: 200,
-      temperature: 0.3
-    });
-
-    const result = response.choices?.[0]?.message?.content?.trim();
-
-    if (!result) {
-      console.warn(`⚠️ Empty AI response for ${filename}`);
-      return generateFallbackSummary(filename, deps, fileType);
-    }
-
-    // Cache the result
-    summaryCache.set(cacheKey, result);
-    return result;
-
-  } catch (apiError) {
-    // Detailed error logging to help diagnose issues
-    console.error(`❌ OpenAI API error for ${filename}:`);
-    console.error(`   Status: ${apiError.status || 'N/A'}`);
-    console.error(`   Message: ${apiError.message}`);
-    console.error(`   Type: ${apiError.type || apiError.code || 'unknown'}`);
-
-    // If the key is invalid/revoked, stop trying for remaining files
-    if (apiError.status === 401 || apiError.code === 'invalid_api_key') {
-      console.error('🚨 API KEY IS INVALID OR REVOKED. Generate a new key at https://platform.openai.com/api-keys');
-      throw new Error('OpenAI API key is invalid. Please generate a new key.');
-    }
-
-    // If model not found, log it clearly
-    if (apiError.status === 404 || apiError.message?.includes('model')) {
-      console.error('🚨 Model "gpt-4.1-mini" not available. Check your OpenAI plan.');
-      throw new Error('Model not available. Check OpenAI plan access.');
-    }
-
-    return generateFallbackSummary(filename, deps, fileType);
-  }
-}
 
 /**
  * Smart fallback summary when OpenAI is not available

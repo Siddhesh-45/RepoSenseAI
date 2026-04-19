@@ -99,9 +99,7 @@ export default function Home() {
   const navigate = useNavigate();
   const inputRef = useRef(null);
 
-  const [mode, setMode] = useState('url'); // 'url', 'username', 'zip'
-  const [usernameResults, setUsernameResults] = useState([]);
-  const [loadingUser, setLoadingUser] = useState(false);
+  const [mode, setMode] = useState('url'); // 'url', 'zip'
   const fileInputRef = useRef(null);
 
   async function handleAnalyze(e) {
@@ -109,18 +107,6 @@ export default function Home() {
     if (mode === 'url') {
       if (!url.trim()) return;
       navigate('/analyze', { state: { repoUrl: url.trim() } });
-    } else if (mode === 'username') {
-      if (!url.trim()) return;
-      setLoadingUser(true);
-      try {
-        const res = await fetch(`/api/repos/${url.trim()}`);
-        const data = await res.json();
-        setUsernameResults(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoadingUser(false);
-      }
     }
   }
 
@@ -218,9 +204,9 @@ export default function Home() {
            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
            style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}
         >
-          {['url', 'username', 'zip'].map(m => (
+          {['url', 'zip'].map(m => (
             <button key={m} onClick={() => setMode(m)} className={`chip ${mode === m ? 'active' : ''}`} style={{ background: mode === m ? 'var(--green-border)' : 'transparent', color: mode === m ? '#000' : 'var(--text-secondary)' }}>
-               {m === 'url' ? '🔗 URL' : m === 'username' ? '👤 Username' : '📦 Upload ZIP'}
+               {m === 'url' ? '🔗 URL' : '📦 Upload ZIP'}
             </button>
           ))}
         </motion.div>
@@ -252,7 +238,7 @@ export default function Home() {
                onChange={e => setUrl(e.target.value)}
                onFocus={() => setFocused(true)}
                onBlur={() => setFocused(false)}
-               placeholder={mode === 'url' ? "https://github.com/username/repository" : "Enter GitHub username..."}
+               placeholder="https://github.com/username/repository"
                className="font-mono"
                style={{
                  flex: 1, background: 'transparent', border: 'none', outline: 'none',
@@ -263,27 +249,11 @@ export default function Home() {
 
           {mode !== 'zip' && (
              <button type="submit" className="btn-primary" style={{ padding: '1rem 1.75rem', fontSize: '0.9375rem', borderRadius: 0 }}>
-               {mode === 'username' ? (loadingUser ? 'Searching...' : 'Search →') : 'Analyze →'}
+               Analyze →
              </button>
           )}
         </motion.form>
 
-        {/* Username Results Dropdown/List */}
-        {mode === 'username' && usernameResults.length > 0 && (
-           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ width: '100%', maxWidth: '680px', marginTop: '1rem', maxHeight: '200px', overflowY: 'auto', background: 'var(--bg-nested)', borderRadius: '0.375rem', border: '1px solid var(--border-color)', padding: '0.5rem' }}>
-              {usernameResults.map(repo => (
-                 <div key={repo.fullName} 
-                      onClick={() => navigate('/analyze', { state: { repoUrl: repo.url } })}
-                      style={{ padding: '0.75rem', cursor: 'pointer', borderBottom: '1px solid var(--border-color)' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                 >
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{repo.name}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{repo.description || "No description"}</div>
-                 </div>
-              ))}
-           </motion.div>
-        )}
 
         {/* ── Sample Repos ── */}
         <motion.div

@@ -155,10 +155,10 @@ export default function Analyzer() {
         {/* Left: Logo + Search */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <h2 className="repo-title" style={{
-            color: '#00ffcc', fontSize: '18px', fontWeight: 600,
-            cursor: 'pointer', margin: 0
+            color: 'var(--text-primary)', fontSize: '1.125rem', fontWeight: 600,
+            cursor: 'pointer', margin: 0, fontFamily: "'Inter', sans-serif"
           }} onClick={() => navigate('/')}>
-            {repoName ? `Repository: ${repoName}` : "⬡ RepoNav AI"}
+            {repoName ? <><span style={{color: 'var(--accent-end)'}}>Repository:</span> {repoName}</> : "⬡ RepoNav AI"}
           </h2>
           <div
             onClick={() => setSearchOpen(true)}
@@ -237,42 +237,42 @@ export default function Analyzer() {
           }}>
             <button
               onClick={() => setSidebarTab('overview')}
-              className="font-mono"
+              className="font-sans"
               style={{
                 flex: 1, padding: '0.625rem', background: 'transparent', border: 'none',
-                color: sidebarTab === 'overview' ? 'var(--accent-end)' : 'var(--text-secondary)',
-                fontSize: '0.6875rem', cursor: 'pointer', letterSpacing: '0.05em',
-                borderBottom: sidebarTab === 'overview' ? '1px solid var(--accent-end)' : '1px solid transparent',
+                color: sidebarTab === 'overview' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.05em',
+                borderBottom: sidebarTab === 'overview' ? '2px solid var(--accent-end)' : '2px solid transparent',
                 transition: 'all 0.2s',
               }}
             >
-              OVERVIEW
+              Overview
             </button>
             <button
               onClick={() => setSidebarTab('info')}
-              className="font-mono"
+              className="font-sans"
               style={{
                 flex: 1, padding: '0.625rem', background: 'transparent', border: 'none',
-                color: sidebarTab === 'info' ? 'var(--accent-end)' : 'var(--text-secondary)',
-                fontSize: '0.6875rem', cursor: 'pointer', letterSpacing: '0.05em',
-                borderBottom: sidebarTab === 'info' ? '1px solid var(--accent-end)' : '1px solid transparent',
+                color: sidebarTab === 'info' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.05em',
+                borderBottom: sidebarTab === 'info' ? '2px solid var(--accent-end)' : '2px solid transparent',
                 transition: 'all 0.2s',
               }}
             >
-              FILE INFO
+              File Info
             </button>
             <button
               onClick={() => setSidebarTab('path')}
-              className="font-mono"
+              className="font-sans"
               style={{
                 flex: 1, padding: '0.625rem', background: 'transparent', border: 'none',
-                color: sidebarTab === 'path' ? 'var(--accent-end)' : 'var(--text-secondary)',
-                fontSize: '0.6875rem', cursor: 'pointer', letterSpacing: '0.05em',
-                borderBottom: sidebarTab === 'path' ? '1px solid var(--accent-end)' : '1px solid transparent',
+                color: sidebarTab === 'path' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', letterSpacing: '0.05em',
+                borderBottom: sidebarTab === 'path' ? '2px solid var(--accent-end)' : '2px solid transparent',
                 transition: 'all 0.2s',
               }}
             >
-              PATH
+              Path
             </button>
           </div>
 
