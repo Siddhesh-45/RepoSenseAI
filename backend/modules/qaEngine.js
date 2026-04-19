@@ -20,17 +20,17 @@
  * and is used by 1 file (routes/analyze.js). It likely handles context
  * retrieval ranking, prompt construction, and answer formatting.
  */
-import OpenAI from 'openai';
+import { GoogleGenAI } from '@google/genai';
 
-let openai = null;
+let ai = null;
 
 function getClient() {
-  if (!openai) {
-    const apiKey = process.env.OPENAI_API_KEY;
+  if (!ai) {
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey.length < 20) return null;
-    openai = new OpenAI({ apiKey });
+    ai = new GoogleGenAI({ apiKey });
   }
-  return openai;
+  return ai;
 }
 
 /**
@@ -177,7 +177,7 @@ ${codeContext}`;
 
   const client = getClient();
 
-  // Fallback: no OpenAI client → return context-based answer
+  // Fallback: no Gemini client → return context-based answer
   if (!client) {
     const fallback = relevantNodes.length > 0
       ? `Based on the analyzed code, these files are most likely relevant to your question:\n\n${relevantNodes.map((n, i) => `${i + 1}. **${n.id}** (${n.type}) — ${n.ai || 'No summary.'}`).join('\n')}`
@@ -187,17 +187,17 @@ ${codeContext}`;
   }
 
   try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user',   content: userPrompt },
-      ],
-      max_tokens: 600,
-      temperature: 0.2, // Low temp for factual grounded answers
+    const response = await client.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: userPrompt,
+      config: {
+          systemInstruction: systemPrompt,
+          maxOutputTokens: 600,
+          temperature: 0.2, // Low temp for factual grounded answers
+      }
     });
 
-    const answer = response.choices?.[0]?.message?.content?.trim()
+    const answer = response.text?.trim()
       || 'Not found in the analyzed code.';
 
     return { answer, sources: sourceIds };
